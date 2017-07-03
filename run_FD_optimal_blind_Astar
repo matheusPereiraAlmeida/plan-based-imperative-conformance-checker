@@ -1,0 +1,23 @@
+#!/bin/bash
+cd fast-downward/
+searchtime=0
+trace="$1"
+domain="Conformance_Checking/domain$trace.pddl"
+problem="Conformance_Checking/problem$trace.pddl"
+prima=$(date +%s%N | cut -b1-13)
+./fast-downward.py $domain $problem  --heuristic "hcea=cea()" --search "astar(blind())"
+dopo=$(date +%s%N | cut -b1-13)
+searchtime=$(($dopo-$prima))
+outputfile="plans_found/alignment_$trace"
+cat sas_plan >> $outputfile
+echo "; searchtime = $searchtime" >> $outputfile
+cat $outputfile
+#echo $date1
+#echo $date2
+echo "*************************************************"
+echo " Time performance for the Optimal Alignment"
+echo " Planner: Fast-Downward"
+echo " Search Algorithm: A*"
+echo " Heuristic: Blind"
+echo "*************************************************"
+echo "the duration for trace #$trace is: $searchtime ms."
