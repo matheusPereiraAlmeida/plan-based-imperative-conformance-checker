@@ -24,223 +24,6 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 
 public class Utilities {
 
-	@Deprecated
-	public static StringBuffer createDomain(Trace trace) {
-
-		StringBuffer PDDL_domain_buffer = new StringBuffer();
-
-		PDDL_domain_buffer.append("(define (domain Mining)\n");
-		PDDL_domain_buffer.append("(:requirements :typing :equality)\n");
-		PDDL_domain_buffer.append("(:types place event transition)\n\n");
-
-		PDDL_domain_buffer.append("(:predicates\n");	
-		PDDL_domain_buffer.append("(token ?p - place)\n");			
-		PDDL_domain_buffer.append("(tracePointer ?e - event)\n");
-		PDDL_domain_buffer.append("(succ ?e1 - event ?e2 - event)\n");		 
-		PDDL_domain_buffer.append("(associated ?e - event ?a - transition)\n");			
-		PDDL_domain_buffer.append("(allowed)\n");		
-		PDDL_domain_buffer.append(")\n\n");			
-
-		if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) {
-			PDDL_domain_buffer.append("(:functions\n");	
-			PDDL_domain_buffer.append("(log-move-cost ?e - event)\n");	
-			PDDL_domain_buffer.append("(total-cost)\n");			
-			PDDL_domain_buffer.append(")\n\n");		
-		}
-
-		for(int i=0;i<Constants.getAllTransitionsVector().size();i++) {
-
-			PetriNetTransition ith_transition = Constants.getAllTransitionsVector().elementAt(i);
-
-			//Move Sync
-			//if(trace.getTraceContentVector().contains(ith_transition.getName())) {
-
-			PDDL_domain_buffer.append("(:action moveSync" + "-" + ith_transition.getName() + "\n");
-			PDDL_domain_buffer.append(":parameters (?e1 - event ?e2 - event)\n");
-			PDDL_domain_buffer.append(":precondition (and");
-			for(int lin=0;lin<ith_transition.getInputPlacesVector().size();lin++) {
-				Place p = ith_transition.getInputPlacesVector().elementAt(lin);
-				PDDL_domain_buffer.append(" (token " + Utilities.getCorrectFormatting(p.getLabel()) + ")");
-			}
-			PDDL_domain_buffer.append(" (tracePointer ?e1)");
-			PDDL_domain_buffer.append(" (associated ?e1 " + ith_transition.getName() +")");
-			PDDL_domain_buffer.append(" (succ ?e1 ?e2)");
-			PDDL_domain_buffer.append(")\n");
-
-			PDDL_domain_buffer.append(":effect (and (allowed)");
-			//PDDL_domain_buffer.append(":effect (and");
-			for(int lin=0;lin<ith_transition.getInputPlacesVector().size();lin++) {
-				Place p = ith_transition.getInputPlacesVector().elementAt(lin);
-				PDDL_domain_buffer.append(" (not (token " + Utilities.getCorrectFormatting(p.getLabel()) + "))");
-			}
-			for(int lin=0;lin<ith_transition.getOutputPlacesVector().size();lin++) {
-				Place p = ith_transition.getOutputPlacesVector().elementAt(lin);
-				PDDL_domain_buffer.append(" (token " + Utilities.getCorrectFormatting(p.getLabel()) + ")");
-			}				
-			PDDL_domain_buffer.append(" (not (tracePointer ?e1)) (tracePointer ?e2)");
-			PDDL_domain_buffer.append(")\n");
-			PDDL_domain_buffer.append(")\n\n");
-			//}
-
-			///////////////////////////////////////////////////////////////////////////
-			//Move in the Model
-			PDDL_domain_buffer.append("(:action moveInTheModel" + "-" + ith_transition.getName() + "\n");
-			PDDL_domain_buffer.append(":precondition");
-
-			if(ith_transition.getInputPlacesVector().size()>1)
-				PDDL_domain_buffer.append(" (and");
-
-			for(int lin=0;lin<ith_transition.getInputPlacesVector().size();lin++) {
-				Place p = ith_transition.getInputPlacesVector().elementAt(lin);
-				PDDL_domain_buffer.append(" (token " + Utilities.getCorrectFormatting(p.getLabel()) + ")");
-			}
-
-			if(ith_transition.getInputPlacesVector().size()>1)
-				PDDL_domain_buffer.append(")\n");
-			else
-				PDDL_domain_buffer.append("\n");
-
-			PDDL_domain_buffer.append(":effect (and (not (allowed))");
-			//PDDL_domain_buffer.append(":effect (and");
-
-			for(int lin=0;lin<ith_transition.getInputPlacesVector().size();lin++) {
-				Place p = ith_transition.getInputPlacesVector().elementAt(lin);
-				PDDL_domain_buffer.append(" (not (token " + Utilities.getCorrectFormatting(p.getLabel()) + "))");
-			}
-			for(int lin=0;lin<ith_transition.getOutputPlacesVector().size();lin++) {
-				Place p = ith_transition.getOutputPlacesVector().elementAt(lin);
-				PDDL_domain_buffer.append(" (token " + Utilities.getCorrectFormatting(p.getLabel()) + ")");
-			}				
-
-			if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) {
-				PDDL_domain_buffer.append(" (increase (total-cost) ");	
-
-				for(int yu=0;yu<Constants.getActivitiesCostVector().size();yu++) {
-					Vector<String> specificTraceCostVector = Constants.getActivitiesCostVector().elementAt(yu);					
-					if(specificTraceCostVector.elementAt(0).equalsIgnoreCase(ith_transition.getName())) {
-						PDDL_domain_buffer.append(specificTraceCostVector.elementAt(1) + ")\n");
-						break;
-					}
-				}
-
-			}
-
-			PDDL_domain_buffer.append(")\n");
-			PDDL_domain_buffer.append(")\n\n");
-		}
-
-		///////////////////////////////////////////////////////////////////////////
-		//Move in the Log
-
-		PDDL_domain_buffer.append("(:action moveInTheLog\n");
-		PDDL_domain_buffer.append(":parameters (?e1 - event ?e2 - event)\n");		
-		//PDDL_domain_buffer.append(":precondition (and (tracePointer ?e1) (succ ?e1 ?e2))\n");
-		PDDL_domain_buffer.append(":precondition (and (tracePointer ?e1) (pre ?e1 ?e2) (allowed))\n");				
-		PDDL_domain_buffer.append(":effect (and (not (tracePointer ?e1)) (tracePointer ?e2) (increase (total-cost) (log-move-cost ?e1)))\n");				
-		PDDL_domain_buffer.append(")\n");				
-
-
-		PDDL_domain_buffer.append(")");
-
-		return PDDL_domain_buffer;
-	}
-
-	@Deprecated
-	public static StringBuffer createProblem(Trace trace) {
-
-		StringBuffer PDDL_objects_buffer = new StringBuffer();	
-		StringBuffer PDDL_init_buffer = new StringBuffer();
-		StringBuffer PDDL_succ_buffer = new StringBuffer();
-		StringBuffer PDDL_associated_buffer = new StringBuffer();
-		StringBuffer PDDL_cost_buffer = new StringBuffer();
-		StringBuffer PDDL_goal_buffer = new StringBuffer();
-		StringBuffer PDDL_problem_buffer = new StringBuffer();
-
-		PDDL_objects_buffer.append("(define (problem Align) (:domain Mining)\n");
-		PDDL_objects_buffer.append("(:objects\n");	
-
-		PDDL_init_buffer = new StringBuffer("(:init\n");
-		PDDL_init_buffer.append("(tracePointer ev1)\n");
-		PDDL_init_buffer.append("(allowed)\n");
-
-		PDDL_goal_buffer.append("(:goal\n");
-		PDDL_goal_buffer.append("(and\n");
-
-		for(int kj=0;kj<Constants.getPetriNetMarkingVector().size();kj++) {
-			Vector<String> v = Constants.getPetriNetMarkingVector().elementAt(kj);
-
-			if(v.elementAt(1).equalsIgnoreCase("1")) 
-				PDDL_init_buffer.append("(token " + v.elementAt(0) + ")\n");
-
-			if(v.elementAt(2).equalsIgnoreCase("1")) 
-				PDDL_goal_buffer.append("(token " + v.elementAt(0) + ")\n");
-			else if(v.elementAt(2).equalsIgnoreCase("0")) 
-				PDDL_goal_buffer.append("(not (token " + v.elementAt(0) + "))\n");
-		}
-
-		for(int hindex=0;hindex<Constants.getAllPlacesVector().size();hindex++) {
-			String placeName = Constants.getAllPlacesVector().elementAt(hindex);
-			PDDL_objects_buffer.append(placeName + " - place\n");
-		}
-
-		for(int k=0;k<trace.getTraceAlphabet().size();k++) {
-			PDDL_objects_buffer.append(trace.getTraceAlphabet().elementAt(k) + " - transition\n");		
-		}
-
-
-		for(int sd=0;sd<trace.getTraceContentVector().size();sd++) {	
-			int sd_ix = sd + 1;
-			int sd_ix_next = sd_ix + 1;
-			PDDL_objects_buffer.append("ev" + sd_ix + " - event\n");		
-
-			if(sd_ix == trace.getTraceContentVector().size()) {
-				PDDL_objects_buffer.append("evEND - event\n");					
-			}
-
-			PDDL_associated_buffer.append("(associated ev" + sd_ix + " " + trace.getTraceContentVector().elementAt(sd) + ")\n");
-
-			if(sd_ix == trace.getTraceContentVector().size()) {
-				PDDL_succ_buffer.append("(succ ev" + sd_ix + " evEND)\n");					
-			}
-			else PDDL_succ_buffer.append("(succ ev" + sd_ix + " ev" + sd_ix_next + ")\n");
-
-			if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) {			
-				for(int yu=0;yu<Constants.getActivitiesCostVector().size();yu++) {
-					Vector<String> specificTraceCostVector = Constants.getActivitiesCostVector().elementAt(yu);					
-					if(specificTraceCostVector.elementAt(0).equalsIgnoreCase(trace.getTraceContentVector().elementAt(sd))) {
-						PDDL_cost_buffer.append("(= (log-move-cost ev" + sd_ix + ") " +  specificTraceCostVector.elementAt(2) + ")\n");
-						break;
-					}
-				}
-			}
-		}	
-		PDDL_objects_buffer.append(")\n");		
-
-		PDDL_init_buffer.append(PDDL_associated_buffer);
-		PDDL_init_buffer.append(PDDL_succ_buffer);
-
-
-		if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) {
-			PDDL_cost_buffer.append("(= (total-cost) 0)\n)\n");
-			PDDL_init_buffer.append(PDDL_cost_buffer);
-		}
-
-		PDDL_goal_buffer.append("(tracePointer evEND)\n");
-		PDDL_goal_buffer.append("))\n");
-
-		if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) 
-			PDDL_goal_buffer.append("(:metric minimize (total-cost))\n");	
-
-		PDDL_problem_buffer.append(PDDL_objects_buffer);
-		PDDL_problem_buffer.append(PDDL_init_buffer);
-		PDDL_problem_buffer.append(PDDL_goal_buffer);	
-		PDDL_problem_buffer.append(")");	
-
-		return PDDL_problem_buffer;
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	public static StringBuffer createPropositionalDomain(Trace trace) {
 
 		StringBuffer PDDL_domain_buffer = new StringBuffer();
@@ -461,7 +244,7 @@ public class Utilities {
 		return PDDL_problem_buffer;
 	}
 
-	public static void writeFile(String nomeFile, StringBuffer buffer) {
+	public static File writeFile(String nomeFile, StringBuffer buffer) {
 
 		File file = null;
 		FileWriter fw = null;
@@ -476,10 +259,25 @@ public class Utilities {
 
 			//fw.flush();
 			//fw.close();
+			
+			return file;
 		}
 		catch(IOException e) {
 			e.printStackTrace();
 		}
+		
+		return null;
+	}
+	
+	/**
+	 * Check whether the OS is 64 bits.
+	 * 
+	 * @return true if OS is 64 bits.
+	 */
+	public static boolean is64bitsOS() {
+		String arch = System.getenv("PROCESSOR_ARCHITECTURE");
+		String wow64Arch = System.getenv("PROCESSOR_ARCHITEW6432");
+		return arch != null && arch.endsWith("64") || wow64Arch != null && wow64Arch.endsWith("64");
 	}
 
 	public static String getCorrectFormatting(String string)  {

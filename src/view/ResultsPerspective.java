@@ -8,8 +8,18 @@ import java.awt.Toolkit;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
@@ -18,6 +28,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -124,17 +135,19 @@ public class ResultsPerspective extends JDialog {
 		_handler = new H_ResultsPerspective(this);
 	}
 
-	private void invokePlanner(ResultsPerspective resP) {
+	private void invokePlanner(ResultsPerspective rp) {
 
-		final ResultsPerspective resultsPerspective = resP;
+		final ResultsPerspective resultsPerspective = rp;
 
 		plannerThread = new Thread(new Runnable() {
 
 			public void run() {
-				try {        
-
+				try {
 					alignedTracesAmount = 0;              	  
-
+					totalAlignmentCost = 0;
+					totalAlignmentTime = 0;
+					
+					// set traces id bounds
 					if(Constants.getPlannerPerspective().getNumberOfTracesCheckBox().isSelected()) {
 						traceIdToCheckFrom = Constants.getPlannerPerspective().getTraceIdComboBoxFROM().getSelectedIndex();
 						traceIdToCheckTo = Constants.getPlannerPerspective().getTraceIdComboBoxTO().getSelectedIndex();
@@ -143,7 +156,8 @@ public class ResultsPerspective extends JDialog {
 						traceIdToCheckFrom = 1;
 						traceIdToCheckTo = Constants.getAllTracesVector().size();
 					}
-
+					
+					// set traces length bounds
 					if(Constants.getPlannerPerspective().getLenghtOfTracesCheckBox().isSelected()) {
 						minTracesLength = new Integer(Constants.getPlannerPerspective().getLenghtOfTracesComboBoxFROM().getSelectedItem().toString());
 						maxTracesLength = new Integer(Constants.getPlannerPerspective().getLenghtOfTracesComboBoxTO().getSelectedItem().toString());
@@ -156,82 +170,23 @@ public class ResultsPerspective extends JDialog {
 					StyleContext context = new StyleContext();
 					Style style = context.addStyle("test", null);     
 
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> EVENT LOG FILE = ", style);
-					StyleConstants.setForeground(style, Color.RED);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), Constants.getEventLogFileName() + "\n", style);
+					// display initial settings to user
+					showPlannerSettings(style, resultsPerspective);
 
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> SEARCH ALGORITHM = ", style);
-					StyleConstants.setForeground(style, Color.BLUE);
-
-					if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected())
-						resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "Blind A* (Cost-Optimal) \n", style);
-					else
-						resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "Lazy Greedy (Suboptimal) \n", style);
-
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> SIZE OF THE EVENT LOG = ", style);
-					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), Constants.getAllTracesVector().size() + "\n", style);
-
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ANALYZE FROM ", style);	            
-					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "trace#" + traceIdToCheckFrom, style);	      
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " TO ", style);	
-					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "trace#" + traceIdToCheckTo + "\n", style);	      
-
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> DISCARD DUPLICATED TRACES = ", style);	      
-
-					if(Constants.isDiscardDuplicatedTraces()) {
-						StyleConstants.setForeground(style, Color.RED);
-						resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "YES \n", style);	         
-					}
-					else {
-						StyleConstants.setForeground(style, Color.BLUE);
-						resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "NO \n", style); 
-					}
-
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ANALYZE TRACES IN THE LOG HAVING LENGHT BETWEEN ", style);
-					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), minTracesLength + "", style);	      
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " AND ", style);	
-					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), maxTracesLength + "\n\n", style);	      
-
-					StyleConstants.setForeground(style, Color.BLACK);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ALIGNMENT IN PROGRESS.......\n\n", style);	      
-
-					totalAlignmentCost = 0;
-					totalAlignmentTime = 0;	            
-
-					File plans_found_folder = new File("fast-downward/plans_found");
-					File conformance_checking_folder = new File("fast-downward/Conformance_Checking");
-					File output_file = new File("fast-downward/sas_plan");
-					Utilities.deleteFolderContents(plans_found_folder);
-					Utilities.deleteFolderContents(conformance_checking_folder);
+					
+					File plansFoundFolder = new File("fast-downward/plans_found");
+					File conformanceCheckingFolder = new File("fast-downward/Conformance_Checking");
+					Utilities.deleteFolderContents(plansFoundFolder);
+					Utilities.deleteFolderContents(conformanceCheckingFolder);
 
 					
 					// create a pointer to external planner script (according to user heuristic selection)
-					File runScript = null;
-					if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected())  {
-						runScript = new File("run_FD_optimal_blind_Astar");
-					}
-					else if(Constants.getPlannerPerspective().getLazyGreedyRadioButton().isSelected())  {
-						runScript = new File("run_FD_suboptimal_hmax");
-					}
-
+					//File runScript = null;					
+					String[] command = buildFastDownardCommandArguments();
 					
 					int traceIndex = 1;
 					for(int traceId = traceIdToCheckFrom-1; traceId < traceIdToCheckTo; traceId++) {	 
 
-						boolean failureFound = false;
 						Trace trace = Constants.getAllTracesVector().elementAt(traceId);
 
 						if(trace.getTraceLength() >= minTracesLength && trace.getTraceLength() <= maxTracesLength)  {		
@@ -246,95 +201,121 @@ public class ResultsPerspective extends JDialog {
 									&& !Constants.getAllTracesHashtable().containsValue(trace.getTraceName())
 									&& Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {  	            
 
-								String other_trace = Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString());
+								String otherTrace = Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString());
 
 								StyleConstants.setForeground(style, Color.RED);   	        
 								resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "SKIPPED: equivalent to " + Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString()) + "\n", style);	 
-								duplicatedTracesHashtable.put(trace.getTraceName(), other_trace);   	   	            
+								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);   	   	            
 							}
 							else {
-
+								Pattern decimalNumberRegex = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
+								
 								// create PDDL encodings (domain & problem) for current trace
-								StringBuffer sb_domain = Utilities.createPropositionalDomain(trace);
-								StringBuffer sb_problem = Utilities.createPropositionalProblem(trace);
-								Utilities.writeFile("fast-downward/Conformance_Checking/domain" + trace.getTraceNumber() + ".pddl", sb_domain);
-								Utilities.writeFile("fast-downward/Conformance_Checking/problem" + trace.getTraceNumber() + ".pddl", sb_problem);	 
-
+								StringBuffer sbDomain = Utilities.createPropositionalDomain(trace);
+								StringBuffer sbProblem = Utilities.createPropositionalProblem(trace);
+								
+								String sbDomainFileName = "fast-downward/Conformance_Checking/domain" + trace.getTraceNumber() + ".pddl";
+								String sbProblemFileName = "fast-downward/Conformance_Checking/problem" + trace.getTraceNumber() + ".pddl";
+								
+								File sbDomainFile = Utilities.writeFile(sbDomainFileName, sbDomain);
+								File sbProblemFile = Utilities.writeFile(sbProblemFileName, sbProblem);
+								
+								// create output file
+								File alignmentFile = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
 								
 								// execute external planner script and wait for results
-								String cmd[] = new String[] {runScript.getCanonicalPath(), trace.getTraceNumber()};
-								Process pr = Runtime.getRuntime().exec(cmd);
-								pr.waitFor();
-
+								command[5] = alignmentFile.getCanonicalPath();
+								command[6] = sbDomainFile.getCanonicalPath();
+								command[7] = sbProblemFile.getCanonicalPath();								
+								ProcessBuilder processBuilder = new ProcessBuilder(command);
+								Process process = processBuilder.start();
 								
-								// check whether planner script failed unexpectedly
-								BufferedReader br = new BufferedReader(new FileReader(output_file));     
-								if (br.readLine() == null) {
+								//System.out.println(Arrays.toString(command));
+								
+								// read trace alignment time from process std out
+								BufferedReader processStdOutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+								String traceAlignmentTime = new String();
+								String stdOutLine;
+								while ((stdOutLine = processStdOutReader.readLine()) != null) {
+									//System.out.println(stdOutLine);
+									
+									if(stdOutLine.startsWith("Total time: ")) {
+										// parse alignment total time
+										Matcher m = decimalNumberRegex.matcher(stdOutLine);
+										m.find();
+										traceAlignmentTime = m.group();
+									}
+								}
+								processStdOutReader.close();
+								
+								// wait for the process to return to read the generated outputs
+								process.waitFor();
+								
+								// check execution results
+								BufferedReader processOutputReader = new BufferedReader(new FileReader(alignmentFile));
+								String outputLine = processOutputReader.readLine(); 
+								if (outputLine == null) {
+									
+									// planner script failed unexpectedly
 									StyleConstants.setForeground(style, Color.RED);
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
 									tracesWithFailureNumber++;
 									tracesWithFailureVector.addElement(trace.getTraceName());
-									failureFound = true;
-								}
-								br.close();
-
-								if(!failureFound) {
-
-									String trace_alignment_cost = new String();  
-									String trace_alignment_time = new String();  
-
-									File alignment_file = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
-
-									BufferedReader br2 = new BufferedReader(new FileReader(alignment_file)); 
-									String line;
-									while ((line = br2.readLine()) != null) {
-
-										if(line.startsWith("; cost = ")) {
-											trace_alignment_cost = line.replace("; cost = ", "");
-											trace_alignment_cost = trace_alignment_cost.replace(" (general cost)", "");
-											if(Integer.parseInt(trace_alignment_cost) > 0)
+									
+								} else {		
+									
+									// read trace alignment cost from process output file
+									String traceAlignmentCost = new String();  
+									while (outputLine != null) {
+										
+										// parse alignment cost
+										if(outputLine.startsWith("; cost = ")) {
+											
+											// parse alignment total cost
+											Matcher m = decimalNumberRegex.matcher(outputLine);
+											m.find();
+											traceAlignmentCost = m.group();
+											
+											if(Integer.parseInt(traceAlignmentCost) > 0)
 												alignedTracesAmount++;
-
 										}
-										else if(line.startsWith("; searchtime = "))  {
-											trace_alignment_time = line.replace("; searchtime = ", "");
-										}
-
-										//System.out.println(line);
-									}
-									br2.close();	
-
+										
+										outputLine = processOutputReader.readLine();
+									}									
+									
+									// append alignment time to result file
+									String timeEntry = "; searchtime = " + traceAlignmentTime;
+									Files.write(Paths.get(alignmentFile.getCanonicalPath()), timeEntry.getBytes(), StandardOpenOption.APPEND);
+									
+									// update UI with trace-related stats
 									StyleConstants.setForeground(style, Color.decode("#009933"));
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ALIGNED IN ", style);	 
 									StyleConstants.setForeground(style, Color.BLUE);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), trace_alignment_time + " ms.", style);
+									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentTime + " s.", style);
 									StyleConstants.setForeground(style, Color.BLACK);
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " WITH COST ", style);
 									StyleConstants.setForeground(style, Color.BLUE);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), trace_alignment_cost + "\n", style);
+									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentCost + "\n", style);
 
-									totalAlignmentTime += Float.parseFloat(trace_alignment_time);
-									totalAlignmentCost += Float.parseFloat(trace_alignment_cost);
-
+									// update total counters
+									totalAlignmentCost += Float.parseFloat(traceAlignmentCost);
+									totalAlignmentTime += Float.parseFloat(traceAlignmentTime);
 								}
-
+								processOutputReader.close();
+								
 								/*
              	     			resultsPerspective.createResults(trace,"Fast-Downward");            	     
 								 */
 							}
-
-
 							resultsPerspective.getAlignedTracesComboBox().insertItemAt(trace.getTraceName(), traceIndex);
 							traceIndex += 1;
-
 						}
-
 					}
 
 					resultsPerspective.getAlignedTracesComboBox().setEnabled(true);  
 
-					int total_number_of_traces = traceIdToCheckTo - traceIdToCheckFrom + 1;
-					int total_number_of_traces_analyzed = total_number_of_traces - tracesWithFailureNumber;
+					int totalTracesNumber = traceIdToCheckTo - traceIdToCheckFrom + 1;
+					int totalAnalyzedTracesNumber = totalTracesNumber - tracesWithFailureNumber;
 
 					StyleConstants.setForeground(style, Color.decode("#009933"));
 					StyleConstants.setBold(style, true);
@@ -344,37 +325,21 @@ public class ResultsPerspective extends JDialog {
 					StyleConstants.setForeground(style, Color.BLACK);
 					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n>> NUMBER OF TRACES ANALYZED = ", style);
 					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), total_number_of_traces_analyzed + "\n", style); 
+					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAnalyzedTracesNumber + "\n", style); 
 
 					StyleConstants.setForeground(style, Color.BLACK);
 					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> NUMBER OF TRACES REPAIRED = ", style);
 					StyleConstants.setForeground(style, Color.RED);
 					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), alignedTracesAmount+"\n", style); 
 
-
-					//StyleConstants.setForeground(style, Color.BLACK);
-					//resultsPerspective.getResultDocument().insertString(rp.getResultDocument().getLength(), ">> NUMBER OF TRACES NOT ANALYZED (due to a planner failure) = ", style);
-					//StyleConstants.setForeground(style, Color.RED);
-					//resultsPerspective.getResultDocument().insertString(rp.getResultDocument().getLength(), number_of_traces_with_failure + "\n", style); 
-					//if(number_of_traces_with_failure>0) 
-					// resultsPerspective.getResultsArea().append("\nLIST OF TRACES NOT ANALYZED (due a planner failure) : " + traces_with_failure_vector + "\n");
-
-					//log_fitness = total_number_of_traces_analyzed - number_of_traces_aligned;
-					//log_fitness = log_fitness / total_number_of_traces_analyzed;
-
-					//StyleConstants.setForeground(style, Color.BLACK);
-					//resultsPerspective.getResultDocument().insertString(rp.getResultDocument().getLength(), "\n>> LOG FITNESS = ", style);
-					//StyleConstants.setForeground(style, Color.BLUE);
-					//resultsPerspective.getResultDocument().insertString(rp.getResultDocument().getLength(),  log_fitness + "\n", style);
-
 					StyleConstants.setForeground(style, Color.BLACK);
 					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT TIME = ", style);
 					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime + " ms.\n", style); 
+					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime + " s.\n", style); 
 					StyleConstants.setForeground(style, Color.BLACK);
 					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> AVG ALIGNMENT TIME = ", style);
 					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime/total_number_of_traces_analyzed + " ms.\n", style); 
+					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime/totalAnalyzedTracesNumber + " s.\n", style); 
 
 
 					StyleConstants.setForeground(style, Color.BLACK);
@@ -384,13 +349,13 @@ public class ResultsPerspective extends JDialog {
 					StyleConstants.setForeground(style, Color.BLACK);
 					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> AVG ALIGNMENT COST = ", style);
 					StyleConstants.setForeground(style, Color.BLUE);
-					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentCost/total_number_of_traces_analyzed + "\n", style);  
+					resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentCost/totalAnalyzedTracesNumber + "\n", style);  
 
 					resultsPerspective.generateAlignedEvLogButton.setEnabled(true);
 
 				}
-				catch(Exception e)
-				{e.printStackTrace();
+				catch(Exception e){
+					e.printStackTrace();
 				}
 
 			}
@@ -398,7 +363,117 @@ public class ResultsPerspective extends JDialog {
 		plannerThread.start();
 	}
 
+	
+	/**
+	 * Build the arguments list needed to launch Fast-Downard planner, tuned according to user selections. 
+	 * Notice that, by default, the domain and problem files are not indicate and should be defined before running 
+	 * the command.
+	 * 
+	 * @return an array of Strings containing the arguments.
+	 * @throws IOException 
+	 */
+	public String[] buildFastDownardCommandArguments() throws IOException {
+		ArrayList<String> commandComponents = new ArrayList<>();
+		commandComponents.add("python");
+		
+		File fdScript = new File("fast-downward/fast-downward.py");
+		commandComponents.add(fdScript.getCanonicalPath());
+		
+		// Fast-Downard is assumed to be built in advance both for 32 and 64 bits OS (being them Windows or Unix-like).
+		commandComponents.add("--build");
+		if (Utilities.is64bitsOS())
+			commandComponents.add("release64");
+		else
+			commandComponents.add("release32");
+		
+		commandComponents.add("--plan-file");
+		commandComponents.add("");  // output file placeholder
+		
+		commandComponents.add("");  // domain file placeholder
+		commandComponents.add("");  // problem file placeholder
+		
+		// insert heuristic and search strategy according to user selection
+		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected()) {
+			commandComponents.add("--heuristic");
+			commandComponents.add("\"hcea=cea()\"");
+			commandComponents.add("--search");
+			commandComponents.add("\"astar(blind())\"");
+		}
+		else if(Constants.getPlannerPerspective().getLazyGreedyRadioButton().isSelected()) {
+			commandComponents.add("--heuristic");
+			commandComponents.add("\"hhmax=hmax()\"");
+			commandComponents.add("--search");
+			commandComponents.add("\"lazy_greedy([hhmax], preferred=[hhmax])\"");
+		}
+		
+		String[] commandArguments = commandComponents.toArray(new String[0]);
+		return commandArguments;
+	}
+	
+	
+	/**
+	 * Display the chosen settings for planner execution to the user.
+	 * 
+	 * @param style
+	 * @param resultsPerspective
+	 * @throws BadLocationException
+	 */
+	private void showPlannerSettings(Style style, ResultsPerspective resultsPerspective) throws BadLocationException {
+		
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> EVENT LOG FILE = ", style);
+		StyleConstants.setForeground(style, Color.RED);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), Constants.getEventLogFileName() + "\n", style);
 
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> SEARCH ALGORITHM = ", style);
+		StyleConstants.setForeground(style, Color.BLUE);
+
+		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected())
+			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "Blind A* (Cost-Optimal) \n", style);
+		else
+			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "Lazy Greedy (Suboptimal) \n", style);
+
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> SIZE OF THE EVENT LOG = ", style);
+		StyleConstants.setForeground(style, Color.BLUE);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), Constants.getAllTracesVector().size() + "\n", style);
+
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ANALYZE FROM ", style);	            
+		StyleConstants.setForeground(style, Color.BLUE);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "trace#" + traceIdToCheckFrom, style);	      
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " TO ", style);	
+		StyleConstants.setForeground(style, Color.BLUE);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "trace#" + traceIdToCheckTo + "\n", style);	      
+
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> DISCARD DUPLICATED TRACES = ", style);	      
+
+		if(Constants.isDiscardDuplicatedTraces()) {
+			StyleConstants.setForeground(style, Color.RED);
+			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "YES \n", style);	         
+		}
+		else {
+			StyleConstants.setForeground(style, Color.BLUE);
+			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "NO \n", style); 
+		}
+
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ANALYZE TRACES IN THE LOG HAVING LENGHT BETWEEN ", style);
+		StyleConstants.setForeground(style, Color.BLUE);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), minTracesLength + "", style);	      
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " AND ", style);	
+		StyleConstants.setForeground(style, Color.BLUE);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), maxTracesLength + "\n\n", style);	      
+
+		StyleConstants.setForeground(style, Color.BLACK);
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ALIGNMENT IN PROGRESS.......\n\n", style);
+	}
+
+	
 	public void createResults(Trace trace, String planner_name) {
 
 		//
