@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -63,8 +62,6 @@ public class ResultsPerspective extends JDialog {
 	private int maxTracesLength = 0;
 
 	private Hashtable<String, String> duplicatedTracesHashtable = new Hashtable<String, String>();
-
-	private Hashtable<String, String> alignmentRequiredForTracesHashtable = new Hashtable<String, String>();
 
 	private int tracesWithFailureNumber = 0;
 	private int alignedTracesAmount = 0;
@@ -119,7 +116,7 @@ public class ResultsPerspective extends JDialog {
 		this.add(okButton); 
 		this.add(generateAlignedEvLogButton);
 
-		this.invokePlanner(this);
+		this.invokePlanner();
 
 		this.setTitle("Event Log Alignment");
 		this.setSize(500, 600);
@@ -135,9 +132,9 @@ public class ResultsPerspective extends JDialog {
 		_handler = new H_ResultsPerspective(this);
 	}
 
-	private void invokePlanner(ResultsPerspective rp) {
+	private void invokePlanner() {
 
-		final ResultsPerspective resultsPerspective = rp;
+		final ResultsPerspective resultsPerspective = this;
 
 		plannerThread = new Thread(new Runnable() {
 
@@ -147,20 +144,22 @@ public class ResultsPerspective extends JDialog {
 					totalAlignmentCost = 0;
 					totalAlignmentTime = 0;
 					
+					PlannerPerspective plannerPerspective = Constants.getPlannerPerspective();
+
 					// set traces id bounds
-					if(Constants.getPlannerPerspective().getNumberOfTracesCheckBox().isSelected()) {
-						traceIdToCheckFrom = Constants.getPlannerPerspective().getTraceIdComboBoxFROM().getSelectedIndex();
-						traceIdToCheckTo = Constants.getPlannerPerspective().getTraceIdComboBoxTO().getSelectedIndex();
+					if(plannerPerspective.getNumberOfTracesCheckBox().isSelected()) {
+						traceIdToCheckFrom = plannerPerspective.getTraceIdComboBoxFROM().getSelectedIndex();
+						traceIdToCheckTo = plannerPerspective.getTraceIdComboBoxTO().getSelectedIndex();
 					}			
 					else {
 						traceIdToCheckFrom = 1;
 						traceIdToCheckTo = Constants.getAllTracesVector().size();
 					}
-					
+
 					// set traces length bounds
-					if(Constants.getPlannerPerspective().getLenghtOfTracesCheckBox().isSelected()) {
-						minTracesLength = new Integer(Constants.getPlannerPerspective().getLenghtOfTracesComboBoxFROM().getSelectedItem().toString());
-						maxTracesLength = new Integer(Constants.getPlannerPerspective().getLenghtOfTracesComboBoxTO().getSelectedItem().toString());
+					if(plannerPerspective.getLenghtOfTracesCheckBox().isSelected()) {
+						minTracesLength = new Integer(plannerPerspective.getLenghtOfTracesComboBoxFROM().getSelectedItem().toString());
+						maxTracesLength = new Integer(plannerPerspective.getLenghtOfTracesComboBoxTO().getSelectedItem().toString());
 					}			
 					else {
 						minTracesLength = Constants.getMinimumLengthOfATrace();
@@ -173,17 +172,17 @@ public class ResultsPerspective extends JDialog {
 					// display initial settings to user
 					showPlannerSettings(style, resultsPerspective);
 
-					
+
 					File plansFoundFolder = new File("fast-downward/plans_found");
 					File conformanceCheckingFolder = new File("fast-downward/Conformance_Checking");
 					Utilities.deleteFolderContents(plansFoundFolder);
 					Utilities.deleteFolderContents(conformanceCheckingFolder);
 
-					
+
 					// create a pointer to external planner script (according to user heuristic selection)
 					//File runScript = null;					
 					String[] command = buildFastDownardCommandArguments();
-					
+
 					int traceIndex = 1;
 					for(int traceId = traceIdToCheckFrom-1; traceId < traceIdToCheckTo; traceId++) {	 
 
@@ -204,41 +203,45 @@ public class ResultsPerspective extends JDialog {
 								String otherTrace = Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString());
 
 								StyleConstants.setForeground(style, Color.RED);   	        
-								resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "SKIPPED: equivalent to " + Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString()) + "\n", style);	 
+								resultsPerspective.getResultDocument().insertString(
+										resultsPerspective.getResultDocument().getLength(),
+										"SKIPPED: equivalent to " + Constants.getAllTracesHashtable()
+											.get(trace.getTrace_textual_content().toString()) + "\n",
+										style);	 
 								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);   	   	            
 							}
 							else {
 								Pattern decimalNumberRegex = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
-								
+
 								// create PDDL encodings (domain & problem) for current trace
 								StringBuffer sbDomain = Utilities.createPropositionalDomain(trace);
 								StringBuffer sbProblem = Utilities.createPropositionalProblem(trace);
-								
+
 								String sbDomainFileName = "fast-downward/Conformance_Checking/domain" + trace.getTraceNumber() + ".pddl";
 								String sbProblemFileName = "fast-downward/Conformance_Checking/problem" + trace.getTraceNumber() + ".pddl";
-								
+
 								File sbDomainFile = Utilities.writeFile(sbDomainFileName, sbDomain);
 								File sbProblemFile = Utilities.writeFile(sbProblemFileName, sbProblem);
-								
+
 								// create output file
 								File alignmentFile = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
-								
+
 								// execute external planner script and wait for results
 								command[5] = alignmentFile.getCanonicalPath();
 								command[6] = sbDomainFile.getCanonicalPath();
 								command[7] = sbProblemFile.getCanonicalPath();								
 								ProcessBuilder processBuilder = new ProcessBuilder(command);
 								Process process = processBuilder.start();
-								
+
 								//System.out.println(Arrays.toString(command));
-								
+
 								// read trace alignment time from process std out
 								BufferedReader processStdOutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 								String traceAlignmentTime = new String();
 								String stdOutLine;
 								while ((stdOutLine = processStdOutReader.readLine()) != null) {
 									//System.out.println(stdOutLine);
-									
+
 									if(stdOutLine.startsWith("Total time: ")) {
 										// parse alignment total time
 										Matcher m = decimalNumberRegex.matcher(stdOutLine);
@@ -247,46 +250,46 @@ public class ResultsPerspective extends JDialog {
 									}
 								}
 								processStdOutReader.close();
-								
+
 								// wait for the process to return to read the generated outputs
 								process.waitFor();
-								
+
 								// check execution results
 								BufferedReader processOutputReader = new BufferedReader(new FileReader(alignmentFile));
 								String outputLine = processOutputReader.readLine(); 
 								if (outputLine == null) {
-									
+
 									// planner script failed unexpectedly
 									StyleConstants.setForeground(style, Color.RED);
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
 									tracesWithFailureNumber++;
 									tracesWithFailureVector.addElement(trace.getTraceName());
-									
+
 								} else {		
-									
+
 									// read trace alignment cost from process output file
 									String traceAlignmentCost = new String();  
 									while (outputLine != null) {
-										
+
 										// parse alignment cost
 										if(outputLine.startsWith("; cost = ")) {
-											
+
 											// parse alignment total cost
 											Matcher m = decimalNumberRegex.matcher(outputLine);
 											m.find();
 											traceAlignmentCost = m.group();
-											
+
 											if(Integer.parseInt(traceAlignmentCost) > 0)
 												alignedTracesAmount++;
 										}
-										
+
 										outputLine = processOutputReader.readLine();
 									}									
-									
+
 									// append alignment time to result file
 									String timeEntry = "; searchtime = " + traceAlignmentTime;
 									Files.write(Paths.get(alignmentFile.getCanonicalPath()), timeEntry.getBytes(), StandardOpenOption.APPEND);
-									
+
 									// update UI with trace-related stats
 									StyleConstants.setForeground(style, Color.decode("#009933"));
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ALIGNED IN ", style);	 
@@ -302,10 +305,7 @@ public class ResultsPerspective extends JDialog {
 									totalAlignmentTime += Float.parseFloat(traceAlignmentTime);
 								}
 								processOutputReader.close();
-								
-								/*
-             	     			resultsPerspective.createResults(trace,"Fast-Downward");            	     
-								 */
+
 							}
 							resultsPerspective.getAlignedTracesComboBox().insertItemAt(trace.getTraceName(), traceIndex);
 							traceIndex += 1;
@@ -363,7 +363,7 @@ public class ResultsPerspective extends JDialog {
 		plannerThread.start();
 	}
 
-	
+
 	/**
 	 * Build the arguments list needed to launch Fast-Downard planner, tuned according to user selections. 
 	 * Notice that, by default, the domain and problem files are not indicate and should be defined before running 
@@ -375,23 +375,23 @@ public class ResultsPerspective extends JDialog {
 	public String[] buildFastDownardCommandArguments() throws IOException {
 		ArrayList<String> commandComponents = new ArrayList<>();
 		commandComponents.add("python");
-		
+
 		File fdScript = new File("fast-downward/fast-downward.py");
 		commandComponents.add(fdScript.getCanonicalPath());
-		
+
 		// Fast-Downard is assumed to be built in advance both for 32 and 64 bits OS (being them Windows or Unix-like).
 		commandComponents.add("--build");
 		if (Utilities.is64bitsOS())
 			commandComponents.add("release64");
 		else
 			commandComponents.add("release32");
-		
+
 		commandComponents.add("--plan-file");
 		commandComponents.add("");  // output file placeholder
-		
+
 		commandComponents.add("");  // domain file placeholder
 		commandComponents.add("");  // problem file placeholder
-		
+
 		// insert heuristic and search strategy according to user selection
 		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected()) {
 			commandComponents.add("--heuristic");
@@ -405,12 +405,12 @@ public class ResultsPerspective extends JDialog {
 			commandComponents.add("--search");
 			commandComponents.add("\"lazy_greedy([hhmax], preferred=[hhmax])\"");
 		}
-		
+
 		String[] commandArguments = commandComponents.toArray(new String[0]);
 		return commandArguments;
 	}
-	
-	
+
+
 	/**
 	 * Display the chosen settings for planner execution to the user.
 	 * 
@@ -419,7 +419,7 @@ public class ResultsPerspective extends JDialog {
 	 * @throws BadLocationException
 	 */
 	private void showPlannerSettings(Style style, ResultsPerspective resultsPerspective) throws BadLocationException {
-		
+
 		StyleConstants.setForeground(style, Color.BLACK);
 		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> EVENT LOG FILE = ", style);
 		StyleConstants.setForeground(style, Color.RED);
@@ -474,117 +474,8 @@ public class ResultsPerspective extends JDialog {
 	}
 
 	
-	public void createResults(Trace trace, String planner_name) {
-
-		//
-		//Create the results to be shown by the planner
-		//
-		if(planner_name.equalsIgnoreCase("fast-downward"))
-			new File("fast-downward/src/sas_plan");
-		else if(planner_name.equalsIgnoreCase("LPG"))
-			new File("LPG/solution");
-
-		Vector<String> plan_vector = new Vector<String>();
-
-		if(planner_name.equalsIgnoreCase("fast-downward")) {
-			try
-			{
-				BufferedReader reader = new BufferedReader(new FileReader("fast-downward/src/sas_plan"));
-				String line = reader.readLine();
-				while(line!=null) {
-					if(line!=null && line.contains("(") && line.contains(")")){
-						plan_vector.addElement(line);
-					}
-					line = reader.readLine();
-				}
-				reader.close();
-			}
-			catch(Exception e) {
-				e.printStackTrace();
-			}
-		}
-		/*
-        else if(planner_name.equalsIgnoreCase("LPG")) {
-    	       try
-     	    	 {
-  			 BufferedReader reader = new BufferedReader(new FileReader("LPG/solution"));
-  			 String line = reader.readLine();
-  			 while(line!=null) {
-  				 if(line!=null && line.contains("(") && line.contains(")")){
-  			    	 plan_vector.addElement(line.substring(line.indexOf("("),line.indexOf(")") + 1).toLowerCase());
-  			     }
-  			     line = reader.readLine();
-  			 }
-     	    	}
-             catch(Exception e)
-     	    {e.printStackTrace();
-     	    }
-          }
-		 */
-		/////////////////////////////////////////
-
-		StringBuffer logBuffer = new StringBuffer();
-		logBuffer.append(">>>> ORIGINAL TRACE: " + trace.getTraceContentVector()+"\n");
-
-		//Vector<String> intermediate_trace_vector = new Vector<String>(trace.getTraceContentVector()); 
-
-		//double trace_fitness = 0.0;
-		//int trace_alignment_cost = 0;
-		//int trace_reference_alignment_cost = 0;
-
-		int number_of_alignments = 0;
-
-		for (int index=0;index<plan_vector.size();index++) {
-
-			int indice = index+1;
-
-			if(index==0) {
-				//	resultsArea.append("###############################\n");
-				logBuffer.append("###############################\n");
-			}		
-			String planning_action = (String) plan_vector.elementAt(index);
-
-			String[] split = planning_action.split("\\(");
-			String[] split1 = split[1].split("\\)");
-
-			String[] complete_action = split1[0].split(" ");
-
-			String action = complete_action[0];
-
-			if(action.contains("movelog")) {
-				//resultsArea.append(">>>> PLANNING ACTION # " + indice + ": " + action + "\n");
-				logBuffer.append(">>>> PLANNING ACTION # " + indice + ": " + action + "\n");
-			}
-			else {
-				//	resultsArea.append(">>>> PLANNING ACTION # " + indice + ": " + action + "\n");
-				logBuffer.append(">>>> PLANNING ACTION # " + indice + ": " + action + "\n");	
-			}
-
-			if(action.contains("moveinthemodel-") || action.contains("moveinthelog")) {
-				number_of_alignments++;
-			}
-		}
-
-		if(number_of_alignments>0) {
-
-			if(!alignmentRequiredForTracesHashtable.containsKey(trace.getTraceName())) {
-				alignmentRequiredForTracesHashtable.put(trace.getTraceName(),"true");
-				alignedTracesAmount++;
-			}
-			else {
-				if(alignmentRequiredForTracesHashtable.get(trace.getTraceName()).equalsIgnoreCase("false")) {
-					alignmentRequiredForTracesHashtable.put(trace.getTraceName(),"true");
-					alignedTracesAmount++;
-				}
-			}
-		}
-
-		logBuffer.append("###############################\n\n");
-
-	}
-
 	/* GETTERS & SETTERS */
-	
+
 	public JTextArea getResultsArea() {
 		return new JTextArea();
 	}
@@ -655,26 +546,5 @@ public class ResultsPerspective extends JDialog {
 	public void setDuplicatedTracesHashtable(Hashtable<String, String> duplicatedTracesHashtable) {
 		this.duplicatedTracesHashtable = duplicatedTracesHashtable;
 	}
-
-//	private void scriviFile(String nomeFile, StringBuffer buffer) {
-//
-//		File file = null;
-//		FileWriter fw = null;
-//
-//		try {
-//			file = new File(nomeFile);
-//			file.setExecutable(true);
-//
-//			fw = new FileWriter(file);
-//			fw.write(buffer.toString());
-//			fw.close();
-//
-//			//fw.flush();
-//			//fw.close();
-//		}
-//		catch(IOException e) {
-//			e.printStackTrace();
-//		}
-//	}
 
 }
