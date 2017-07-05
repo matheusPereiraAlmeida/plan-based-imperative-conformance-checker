@@ -287,10 +287,9 @@ public class H_ResultsPerspective {
 							if(trace.getTraceLength() >= _view.getMinTracesLength() && trace.getTraceLength() <= _view.getMaxTracesLength())  {		
 
 								StyleConstants.setForeground(style, Color.BLACK);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ALIGNING ", style);
+								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ", style);
 								StyleConstants.setForeground(style, Color.BLUE);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace.getTraceName() + " ... ", style);	 
-
+								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace.getTraceName() + " ", style);	 
 
 								if(Constants.isDiscardDuplicatedTraces() && !Constants.getAllTracesHashtable().containsValue(trace.getTraceName()) && Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {  	            
 

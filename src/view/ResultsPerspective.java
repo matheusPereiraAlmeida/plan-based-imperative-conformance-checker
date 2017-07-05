@@ -64,6 +64,9 @@ public class ResultsPerspective extends JDialog {
 	private int alignedTracesAmount = 0;
 	private Vector<String> tracesWithFailureVector = new Vector<String>();
 
+	private StyleContext context = new StyleContext();
+	private Style style = context.addStyle("test", null);
+
 	protected H_ResultsPerspective _handler;
 
 	public ResultsPerspective() {
@@ -161,11 +164,9 @@ public class ResultsPerspective extends JDialog {
 						maxTracesLength = Constants.getMaximumLengthOfATrace();
 					}
 
-					StyleContext context = new StyleContext();
-					Style style = context.addStyle("test", null);     
 
 					// display initial settings to user
-					showPlannerSettings(style, resultsPerspective);
+					showPlannerSettings();
 
 					// cleanup folders
 					File plansFoundFolder = new File("fast-downward/plans_found");
@@ -180,37 +181,28 @@ public class ResultsPerspective extends JDialog {
 
 						Trace trace = Constants.getAllTracesVector().elementAt(traceId);
 
-						if(trace.getTraceLength() >= minTracesLength && trace.getTraceLength() <= maxTracesLength)  {		
+						if(trace.getTraceLength() >= minTracesLength && trace.getTraceLength() <= maxTracesLength)  {
 
-							StyleConstants.setForeground(style, Color.BLACK);
-							resultsPerspective.getResultDocument().insertString(
-									resultsPerspective.getResultDocument().getLength(),
-									">> GENERATING PDDL ",
-									style);
+							// the trace matches the length bounds
 
-							StyleConstants.setForeground(style, Color.BLUE);
-							resultsPerspective.getResultDocument().insertString(
-									resultsPerspective.getResultDocument().getLength(),
-									trace.getTraceName() + " ... ",
-									style);	 
-
+							appendToResultsDocument(">> GENERATING PDDL FOR ", Color.BLACK);
+							appendToResultsDocument(trace.getTraceName() + " ... ", Color.BLUE);
 
 							if(Constants.isDiscardDuplicatedTraces()
 									&& !Constants.getAllTracesHashtable().containsValue(trace.getTraceName())
-									&& Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {  	            
+									&& Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {
+
+								// the trace is a duplicate of a previous one
 
 								String otherTrace = Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString());
-
-								StyleConstants.setForeground(style, Color.RED);   	        
-								resultsPerspective.getResultDocument().insertString(
-										resultsPerspective.getResultDocument().getLength(),
-										"SKIPPED: equivalent to " + Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString()),
-										style);	 
+								appendToResultsDocument("SKIPPED: equivalent to "
+										+ Constants.getAllTracesHashtable()
+											.get(trace.getTrace_textual_content().toString()), Color.RED);
 								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);   	   	            
 							}
 							else {
 
-
+								// the trace is not a duplicate
 								// create PDDL encodings (domain & problem) for current trace
 								StringBuffer sbDomain = Utilities.createPropositionalDomain(trace);
 								StringBuffer sbProblem = Utilities.createPropositionalProblem(trace);
@@ -218,18 +210,16 @@ public class ResultsPerspective extends JDialog {
 								String sbProblemFileName = "fast-downward/Conformance_Checking/problem" + trace.getTraceNumber() + ".pddl";
 								Utilities.writeFile(sbDomainFileName, sbDomain);
 								Utilities.writeFile(sbProblemFileName, sbProblem);
-
 							}
 
-							StyleConstants.setForeground(style, Color.BLACK);
-							resultsPerspective.getResultDocument().insertString(
-									resultsPerspective.getResultDocument().getLength(), "\n", style);
+							appendToResultsDocument("\n", Color.BLACK);
 						}
 					}
 
 
 					/* PLANNER INVOCATION */
-
+					appendToResultsDocument("\n>> ALIGNMENT IN PROGRESS.......\n\n", Color.BLACK);
+					
 					String[] command = buildFastDownardCommandArguments();
 
 					// execute external planner script and wait for results
@@ -267,10 +257,7 @@ public class ResultsPerspective extends JDialog {
 						if (outputLine == null) {
 
 							// planner script failed unexpectedly
-							StyleConstants.setForeground(style, Color.RED);
-							resultsPerspective.getResultDocument().insertString(
-									resultsPerspective.getResultDocument().getLength(), 
-									"ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
+							appendToResultsDocument("ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", Color.RED);
 
 							tracesWithFailureNumber++;
 							tracesWithFailureVector.addElement(trace.getTraceName());
@@ -304,16 +291,13 @@ public class ResultsPerspective extends JDialog {
 								outputLine = processOutputReader.readLine();
 							}									
 
-
-							// update UI with trace-related stats
-							StyleConstants.setForeground(style, Color.decode("#009933"));
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ALIGNED IN ", style);	 
-							StyleConstants.setForeground(style, Color.BLUE);
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentTime + Constants.TIME_UNIT, style);
-							StyleConstants.setForeground(style, Color.BLACK);
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " WITH COST ", style);
-							StyleConstants.setForeground(style, Color.BLUE);
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentCost + "\n", style);
+							// update UI with trace-related statistics
+							appendToResultsDocument(">> ", Color.BLACK);
+							appendToResultsDocument(trace.getTraceName(), Color.BLUE);
+							appendToResultsDocument(" ALIGNED IN ", Color.decode("#009933"));							
+							appendToResultsDocument(traceAlignmentTime + Constants.TIME_UNIT, Color.BLUE);
+							appendToResultsDocument(" WITH COST ", Color.BLACK);
+							appendToResultsDocument(traceAlignmentCost + "\n", Color.BLUE);
 
 							// update total counters
 							totalAlignmentCost += Float.parseFloat(traceAlignmentCost);
@@ -325,7 +309,7 @@ public class ResultsPerspective extends JDialog {
 						traceIndex += 1;
 					}
 
-					showPlannerResultsOverview(style, resultsPerspective);
+					showPlannerResultsOverview(resultsPerspective);
 
 					resultsPerspective.getAlignedTracesComboBox().setEnabled(true);  
 					resultsPerspective.generateAlignedEvLogButton.setEnabled(true);
@@ -399,65 +383,53 @@ public class ResultsPerspective extends JDialog {
 
 
 	/**
+	 * Append a String to the results to be presented to the user.
+	 * 
+	 * @param content
+	 * @param color
+	 * @throws BadLocationException 
+	 */
+	public void appendToResultsDocument(String content, Color color) throws BadLocationException {
+		StyleConstants.setForeground(style, color);
+		this.getResultDocument().insertString(this.getResultDocument().getLength(), content, style);
+	}
+
+
+	/**
 	 * Display the chosen settings for planner execution to the user.
 	 * 
 	 * @param style
 	 * @param resultsPerspective
 	 * @throws BadLocationException
 	 */
-	private void showPlannerSettings(Style style, ResultsPerspective resultsPerspective) throws BadLocationException {
+	public void showPlannerSettings() throws BadLocationException {
 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> EVENT LOG FILE = ", style);
-		StyleConstants.setForeground(style, Color.RED);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), Constants.getEventLogFileName() + "\n", style);
-
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> SEARCH ALGORITHM = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
+		appendToResultsDocument(">> EVENT LOG FILE = ", Color.BLACK);
+		appendToResultsDocument(Constants.getEventLogFileName() + "\n", Color.RED);
+		appendToResultsDocument(">> SEARCH ALGORITHM = ", Color.BLACK);
 
 		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected())
-			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "Blind A* (Cost-Optimal) \n", style);
+			appendToResultsDocument("Blind A* (Cost-Optimal) \n", Color.BLUE);
 		else
-			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "Lazy Greedy (Suboptimal) \n", style);
+			appendToResultsDocument("Lazy Greedy (Suboptimal) \n", Color.BLUE);
 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> SIZE OF THE EVENT LOG = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), Constants.getAllTracesVector().size() + "\n", style);
+		appendToResultsDocument(">> SIZE OF THE EVENT LOG = ", Color.BLACK);
+		appendToResultsDocument(Constants.getAllTracesVector().size() + "\n", Color.BLUE);
+		appendToResultsDocument(">> ANALYZE FROM ", Color.BLACK);
+		appendToResultsDocument("trace#" + traceIdToCheckFrom, Color.BLUE);
+		appendToResultsDocument(" TO ", Color.BLACK);
+		appendToResultsDocument("trace#" + traceIdToCheckTo + "\n", Color.BLUE);
+		appendToResultsDocument(">> DISCARD DUPLICATED TRACES = ", Color.BLACK);
 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ANALYZE FROM ", style);	            
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "trace#" + traceIdToCheckFrom, style);	      
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " TO ", style);	
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "trace#" + traceIdToCheckTo + "\n", style);	      
+		if(Constants.isDiscardDuplicatedTraces())
+			appendToResultsDocument("YES \n", Color.RED);
+		else
+			appendToResultsDocument("NO \n", Color.BLUE);
 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> DISCARD DUPLICATED TRACES = ", style);	      
-
-		if(Constants.isDiscardDuplicatedTraces()) {
-			StyleConstants.setForeground(style, Color.RED);
-			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "YES \n", style);	         
-		}
-		else {
-			StyleConstants.setForeground(style, Color.BLUE);
-			resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "NO \n", style); 
-		}
-
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ANALYZE TRACES IN THE LOG HAVING LENGHT BETWEEN ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), minTracesLength + "", style);	      
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " AND ", style);	
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), maxTracesLength + "\n\n", style);	      
-
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ALIGNMENT IN PROGRESS.......\n\n", style);
+		appendToResultsDocument(">> ANALYZE TRACES IN THE LOG HAVING LENGHT BETWEEN ", Color.BLACK);
+		appendToResultsDocument(minTracesLength + "", Color.BLUE);
+		appendToResultsDocument(" AND ", Color.BLACK);
+		appendToResultsDocument(maxTracesLength + "\n\n", Color.BLUE);
 	}
 
 
@@ -468,45 +440,27 @@ public class ResultsPerspective extends JDialog {
 	 * @param resultsPerspective
 	 * @throws BadLocationException
 	 */
-	private void showPlannerResultsOverview(Style style, ResultsPerspective resultsPerspective) throws BadLocationException {
+	public void showPlannerResultsOverview(ResultsPerspective resultsPerspective) throws BadLocationException {
 
 		int totalTracesNumber = traceIdToCheckTo - traceIdToCheckFrom + 1;
 		int totalAnalyzedTracesNumber = totalTracesNumber - tracesWithFailureNumber;
 
-		StyleConstants.setForeground(style, Color.decode("#009933"));
 		StyleConstants.setBold(style, true);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n--- RESULTS OF THE ALIGNMENT ---\n", style);
+		appendToResultsDocument("\n--- RESULTS OF THE ALIGNMENT ---\n", Color.decode("#009933"));
 		StyleConstants.setBold(style, false);
 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n>> NUMBER OF TRACES ANALYZED = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAnalyzedTracesNumber + "\n", style); 
-
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> NUMBER OF TRACES REPAIRED = ", style);
-		StyleConstants.setForeground(style, Color.RED);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), alignedTracesAmount+"\n", style); 
-
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT TIME = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime + Constants.TIME_UNIT + "\n", style); 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> AVG ALIGNMENT TIME = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime/totalAnalyzedTracesNumber + Constants.TIME_UNIT + "\n", style); 
-
-
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT COST = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentCost + "\n", style); 
-		StyleConstants.setForeground(style, Color.BLACK);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> AVG ALIGNMENT COST = ", style);
-		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentCost/totalAnalyzedTracesNumber + "\n", style);  
-
+		appendToResultsDocument("\n>> NUMBER OF TRACES ANALYZED = ", Color.BLACK);
+		appendToResultsDocument(totalAnalyzedTracesNumber + "\n", Color.BLUE);
+		appendToResultsDocument(">> NUMBER OF TRACES REPAIRED = ", Color.BLACK);
+		appendToResultsDocument(alignedTracesAmount + "\n", Color.RED);
+		appendToResultsDocument("\n>> TOTAL ALIGNMENT TIME = ", Color.BLACK);
+		appendToResultsDocument(totalAlignmentTime + Constants.TIME_UNIT + "\n", Color.BLUE);
+		appendToResultsDocument(">> AVG ALIGNMENT TIME = ", Color.BLACK);
+		appendToResultsDocument(totalAlignmentTime/totalAnalyzedTracesNumber + Constants.TIME_UNIT + "\n", Color.BLUE);
+		appendToResultsDocument("\n>> TOTAL ALIGNMENT COST = ", Color.BLACK);
+		appendToResultsDocument(totalAlignmentCost + "\n", Color.BLUE);
+		appendToResultsDocument(">> AVG ALIGNMENT COST = ", Color.BLACK);
+		appendToResultsDocument(totalAlignmentCost/totalAnalyzedTracesNumber + "\n", Color.BLUE); 
 	}
 
 
@@ -583,5 +537,4 @@ public class ResultsPerspective extends JDialog {
 	public void setDuplicatedTracesHashtable(Hashtable<String, String> duplicatedTracesHashtable) {
 		this.duplicatedTracesHashtable = duplicatedTracesHashtable;
 	}
-
 }
