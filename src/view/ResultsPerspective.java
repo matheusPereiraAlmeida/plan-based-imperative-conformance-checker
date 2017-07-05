@@ -9,10 +9,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
@@ -136,18 +132,13 @@ public class ResultsPerspective extends JDialog {
 		final ResultsPerspective resultsPerspective = this;
 
 		plannerThread = new Thread(new Runnable() {
-			
-			private static final int ALIGNMENT_FILE_POS = 5;
-			private static final int DOMAIN_FILE_POS = 6;
-			private static final int PROBLEM_FILE_POS = DOMAIN_FILE_POS + 1;
-			private static final int TIME_CONVERSION_COEFF = 1000;
 
 			public void run() {
 				try {
 					alignedTracesAmount = 0;              	  
 					totalAlignmentCost = 0;
 					totalAlignmentTime = 0;
-					
+
 					PlannerPerspective plannerPerspective = Constants.getPlannerPerspective();
 
 					// set traces id bounds
@@ -176,27 +167,32 @@ public class ResultsPerspective extends JDialog {
 					// display initial settings to user
 					showPlannerSettings(style, resultsPerspective);
 
-					// cleanup output folders
+					// cleanup folders
 					File plansFoundFolder = new File("fast-downward/plans_found");
 					File conformanceCheckingFolder = new File("fast-downward/Conformance_Checking");
 					Utilities.deleteFolderContents(plansFoundFolder);
 					Utilities.deleteFolderContents(conformanceCheckingFolder);
 
-					// create a pointer to external planner script (according to user heuristic selection)
-					//File runScript = null;					
-					String[] command = buildFastDownardCommandArguments();
 
-					int traceIndex = 1;
-					for(int traceId = traceIdToCheckFrom-1; traceId < traceIdToCheckTo; traceId++) {	 
+					/* PLANNER INPUTS BUILDING */
+
+					for(int traceId = traceIdToCheckFrom-1; traceId < traceIdToCheckTo; traceId++) {
 
 						Trace trace = Constants.getAllTracesVector().elementAt(traceId);
 
 						if(trace.getTraceLength() >= minTracesLength && trace.getTraceLength() <= maxTracesLength)  {		
 
 							StyleConstants.setForeground(style, Color.BLACK);
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ALIGNING ", style);
+							resultsPerspective.getResultDocument().insertString(
+									resultsPerspective.getResultDocument().getLength(),
+									">> GENERATING PDDL ",
+									style);
+
 							StyleConstants.setForeground(style, Color.BLUE);
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), trace.getTraceName() + " ... ", style);	 
+							resultsPerspective.getResultDocument().insertString(
+									resultsPerspective.getResultDocument().getLength(),
+									trace.getTraceName() + " ... ",
+									style);	 
 
 
 							if(Constants.isDiscardDuplicatedTraces()
@@ -208,121 +204,127 @@ public class ResultsPerspective extends JDialog {
 								StyleConstants.setForeground(style, Color.RED);   	        
 								resultsPerspective.getResultDocument().insertString(
 										resultsPerspective.getResultDocument().getLength(),
-										"SKIPPED: equivalent to " + Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString()) + "\n",
+										"SKIPPED: equivalent to " + Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString()),
 										style);	 
 								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);   	   	            
 							}
 							else {
-								Pattern decimalNumberRegex = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
+
 
 								// create PDDL encodings (domain & problem) for current trace
 								StringBuffer sbDomain = Utilities.createPropositionalDomain(trace);
 								StringBuffer sbProblem = Utilities.createPropositionalProblem(trace);
-
 								String sbDomainFileName = "fast-downward/Conformance_Checking/domain" + trace.getTraceNumber() + ".pddl";
 								String sbProblemFileName = "fast-downward/Conformance_Checking/problem" + trace.getTraceNumber() + ".pddl";
-
-								File sbDomainFile = Utilities.writeFile(sbDomainFileName, sbDomain);
-								File sbProblemFile = Utilities.writeFile(sbProblemFileName, sbProblem);
-
-								// create output file
-								File alignmentFile = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
-
-								// execute external planner script and wait for results
-								command[ALIGNMENT_FILE_POS] = alignmentFile.getCanonicalPath();
-								command[DOMAIN_FILE_POS] = sbDomainFile.getCanonicalPath();
-								command[PROBLEM_FILE_POS] = sbProblemFile.getCanonicalPath();								
-								ProcessBuilder processBuilder = new ProcessBuilder(command);
-								Process process = processBuilder.start();
-
-								//System.out.println(Arrays.toString(command));
-								
-								// read std err in separated thread
-								StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR");
-								errorGobbler.start();
-
-								// read trace alignment time from process std out
-								BufferedReader processStdOutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-								String traceAlignmentTime = new String();
-								String stdOutLine;
-								while ((stdOutLine = processStdOutReader.readLine()) != null) {
-									//System.out.println(stdOutLine);
-
-									if(stdOutLine.startsWith("Total time: ")) {
-										// parse alignment total time
-										Matcher m = decimalNumberRegex.matcher(stdOutLine);
-										m.find();
-										traceAlignmentTime = m.group();
-									}
-								}
-								processStdOutReader.close();
-								float traceAlignmentTimeMillisecs = Float.parseFloat(traceAlignmentTime) * TIME_CONVERSION_COEFF;
-								traceAlignmentTime = traceAlignmentTimeMillisecs+"";
-
-								// wait for the process to return to read the generated outputs
-								process.waitFor();
-
-								// check execution results
-								BufferedReader processOutputReader = new BufferedReader(new FileReader(alignmentFile));
-								String outputLine = processOutputReader.readLine(); 
-								if (outputLine == null) {
-
-									// planner script failed unexpectedly
-									StyleConstants.setForeground(style, Color.RED);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
-									tracesWithFailureNumber++;
-									tracesWithFailureVector.addElement(trace.getTraceName());
-
-								} else {		
-
-									// read trace alignment cost from process output file
-									String traceAlignmentCost = new String();  
-									while (outputLine != null) {
-
-										// parse alignment cost
-										if(outputLine.startsWith("; cost = ")) {
-
-											// parse alignment total cost
-											Matcher m = decimalNumberRegex.matcher(outputLine);
-											m.find();
-											traceAlignmentCost = m.group();
-
-											if(Integer.parseInt(traceAlignmentCost) > 0)
-												alignedTracesAmount++;
-										}
-
-										outputLine = processOutputReader.readLine();
-									}									
-
-									// append alignment time to result file
-									String timeEntry = "; searchtime = " + traceAlignmentTime;
-									Files.write(Paths.get(alignmentFile.getCanonicalPath()), timeEntry.getBytes(), StandardOpenOption.APPEND);
-
-									// update UI with trace-related stats
-									StyleConstants.setForeground(style, Color.decode("#009933"));
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ALIGNED IN ", style);	 
-									StyleConstants.setForeground(style, Color.BLUE);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentTime + Constants.TIME_UNIT, style);
-									StyleConstants.setForeground(style, Color.BLACK);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " WITH COST ", style);
-									StyleConstants.setForeground(style, Color.BLUE);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentCost + "\n", style);
-
-									// update total counters
-									totalAlignmentCost += Float.parseFloat(traceAlignmentCost);
-									totalAlignmentTime += Float.parseFloat(traceAlignmentTime);
-								}
-								processOutputReader.close();
+								Utilities.writeFile(sbDomainFileName, sbDomain);
+								Utilities.writeFile(sbProblemFileName, sbProblem);
 
 							}
-							resultsPerspective.getAlignedTracesComboBox().insertItemAt(trace.getTraceName(), traceIndex);
-							traceIndex += 1;
+
+							StyleConstants.setForeground(style, Color.BLACK);
+							resultsPerspective.getResultDocument().insertString(
+									resultsPerspective.getResultDocument().getLength(), "\n", style);
 						}
 					}
 
 
+					/* PLANNER INVOCATION */
+
+					String[] command = buildFastDownardCommandArguments();
+
+					// execute external planner script and wait for results
+					ProcessBuilder processBuilder = new ProcessBuilder(command);
+					Process process = processBuilder.start();
+
+					//System.out.println(Arrays.toString(command));
+
+					// read std out & err in separated thread
+					StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR");
+					StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT");
+					errorGobbler.start();
+					outputGobbler.start();
+
+					// wait for the process to return to read the generated outputs
+					process.waitFor();
+
+
+					/* PLANNER OUTPUTS PROCESSING */
+
+					Pattern decimalNumberRegex = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
+					int traceIndex = 1;
+					for(final File alignmentFile : plansFoundFolder.listFiles()) {
+
+						// extract traceId
+						Matcher traceIdMatcher = decimalNumberRegex.matcher(alignmentFile.getName());
+						traceIdMatcher.find();
+						int traceId = Integer.parseInt(traceIdMatcher.group());
+
+						Trace trace = Constants.getAllTracesVector().elementAt(traceId);
+
+						// check execution results
+						BufferedReader processOutputReader = new BufferedReader(new FileReader(alignmentFile));
+						String outputLine = processOutputReader.readLine(); 
+						if (outputLine == null) {
+
+							// planner script failed unexpectedly
+							StyleConstants.setForeground(style, Color.RED);
+							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
+							tracesWithFailureNumber++;
+							tracesWithFailureVector.addElement(trace.getTraceName());
+
+						} else {		
+
+							// read trace alignment cost from process output file
+							String traceAlignmentCost = new String();
+							String traceAlignmentTime = new String();
+							while (outputLine != null) {
+
+								// parse alignment cost
+								if(outputLine.startsWith("; cost = ")) {
+
+									Matcher m = decimalNumberRegex.matcher(outputLine);
+									m.find();
+									traceAlignmentCost = m.group();
+
+									if(Integer.parseInt(traceAlignmentCost) > 0)
+										alignedTracesAmount++;
+								}
+
+								// parse alignment time
+								if(outputLine.startsWith("; searchtime = ")) {
+
+									Matcher m = decimalNumberRegex.matcher(outputLine);
+									m.find();
+									traceAlignmentTime = m.group();
+								}
+
+								outputLine = processOutputReader.readLine();
+							}									
+
+
+							// update UI with trace-related stats
+							StyleConstants.setForeground(style, Color.decode("#009933"));
+							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ALIGNED IN ", style);	 
+							StyleConstants.setForeground(style, Color.BLUE);
+							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentTime + Constants.TIME_UNIT, style);
+							StyleConstants.setForeground(style, Color.BLACK);
+							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " WITH COST ", style);
+							StyleConstants.setForeground(style, Color.BLUE);
+							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentCost + "\n", style);
+
+							// update total counters
+							totalAlignmentCost += Float.parseFloat(traceAlignmentCost);
+							totalAlignmentTime += Float.parseFloat(traceAlignmentTime);
+						}
+						processOutputReader.close();
+
+
+						resultsPerspective.getAlignedTracesComboBox().insertItemAt(trace.getTraceName(), traceIndex);
+						traceIndex += 1;
+					}
+
 					showPlannerResultsOverview(style, resultsPerspective);
-					
+
 					resultsPerspective.getAlignedTracesComboBox().setEnabled(true);  
 					resultsPerspective.generateAlignedEvLogButton.setEnabled(true);
 
@@ -330,7 +332,6 @@ public class ResultsPerspective extends JDialog {
 				catch(Exception e){
 					e.printStackTrace();
 				}
-
 			}
 		});
 		plannerThread.start();
@@ -347,6 +348,17 @@ public class ResultsPerspective extends JDialog {
 	 */
 	public String[] buildFastDownardCommandArguments() throws IOException {
 		ArrayList<String> commandComponents = new ArrayList<>();
+
+		/* begin of command args for planner manager */
+
+		commandComponents.add("python");
+
+		File plannerManagerScript = new File("planner_manager.py");
+		commandComponents.add(plannerManagerScript.getCanonicalPath());
+
+
+		/* begin of command args for Fast-Downward */
+
 		commandComponents.add("python");
 
 		File fdScript = new File("fast-downward/fast-downward.py");
@@ -360,11 +372,11 @@ public class ResultsPerspective extends JDialog {
 			commandComponents.add("release32");
 
 		commandComponents.add("--plan-file");
-		commandComponents.add("");  // output file placeholder
+		commandComponents.add("+");  // output file placeholder
 
-		commandComponents.add("");  // domain file placeholder
-		commandComponents.add("");  // problem file placeholder
-		
+		commandComponents.add("+");  // domain file placeholder
+		commandComponents.add("+");  // problem file placeholder
+
 		// insert heuristic and search strategy according to user selection
 		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected()) {
 			commandComponents.add("--heuristic");
@@ -445,8 +457,8 @@ public class ResultsPerspective extends JDialog {
 		StyleConstants.setForeground(style, Color.BLACK);
 		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ALIGNMENT IN PROGRESS.......\n\n", style);
 	}
-	
-	
+
+
 	/**
 	 * Display the overview of the results of the planner execution to the user.
 	 * 
@@ -455,7 +467,7 @@ public class ResultsPerspective extends JDialog {
 	 * @throws BadLocationException
 	 */
 	private void showPlannerResultsOverview(Style style, ResultsPerspective resultsPerspective) throws BadLocationException {
-		
+
 		int totalTracesNumber = traceIdToCheckTo - traceIdToCheckFrom + 1;
 		int totalAnalyzedTracesNumber = totalTracesNumber - tracesWithFailureNumber;
 
@@ -495,7 +507,7 @@ public class ResultsPerspective extends JDialog {
 
 	}
 
-	
+
 	/* GETTERS & SETTERS */
 
 	public JTextArea getResultsArea() {
@@ -545,7 +557,7 @@ public class ResultsPerspective extends JDialog {
 	public DefaultStyledDocument getResultDocument() {
 		return resultDocument;
 	}
-	
+
 	public Thread getPlannerThread() {
 		return plannerThread;
 	}
