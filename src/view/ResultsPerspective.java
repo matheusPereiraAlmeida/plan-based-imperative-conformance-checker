@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -401,15 +400,15 @@ public class ResultsPerspective extends JDialog {
 		// insert heuristic and search strategy according to user selection
 		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected()) {
 			commandComponents.add("--heuristic");
-			commandComponents.add("\"hcea=cea()\"");
+			commandComponents.add("hcea=cea()");
 			commandComponents.add("--search");
-			commandComponents.add("\"astar(blind())\"");
+			commandComponents.add("astar(blind())");
 		}
 		else if(Constants.getPlannerPerspective().getLazyGreedyRadioButton().isSelected()) {
 			commandComponents.add("--heuristic");
-			commandComponents.add("\"hhmax=hmax()\"");
+			commandComponents.add("hhmax=hmax()");
 			commandComponents.add("--search");
-			commandComponents.add("\"lazy_greedy([hhmax], preferred=[hhmax])\"");
+			commandComponents.add("lazy_greedy([hhmax], preferred=[hhmax])");
 		}
 
 		String[] commandArguments = commandComponents.toArray(new String[0]);
