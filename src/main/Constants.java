@@ -11,6 +11,8 @@ import view.TracePerspective;
 
 public class Constants {
 
+	public static final String TIME_UNIT = " ms.";
+	
 	private static JFrame desktop;
 	private static MenuPerspective menuPerspective;
 	private static AlphabetPerspective alphabetPanel;
@@ -80,11 +82,9 @@ public class Constants {
 
 	private static int minimum_length_of_a_trace = 0;
 	private static int maximum_length_of_a_trace = 0;
-
-	private static boolean discard_duplicated_traces = false;	
-
+	private static boolean discard_duplicated_traces = false;
 	private static String eventLog_file_name = new String("Created from scratch");
-	private static String petriNet_file_name = new String();	
+	private static String petriNet_file_name = new String();
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////// GETTERS AND SETTERS ///////////////////////////////////////////////////////////////

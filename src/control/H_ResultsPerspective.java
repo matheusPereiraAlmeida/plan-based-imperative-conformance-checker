@@ -138,7 +138,7 @@ public class H_ResultsPerspective {
 						StyleConstants.setForeground(style, Color.BLACK);
 						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ALIGNMENT TIME = ", style);
 						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_time + " s.\n", style); 
+						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_time + Constants.TIME_UNIT + "\n", style); 
 
 						StyleConstants.setForeground(style, Color.BLACK);
 						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ALIGNMENT COST = ", style);
@@ -323,7 +323,7 @@ public class H_ResultsPerspective {
 									StyleConstants.setForeground(style, Color.decode("#009933"));
 									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "ALIGNED IN ", style);	 
 									StyleConstants.setForeground(style, Color.BLUE);
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_time + " s.", style);
+									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_time + Constants.TIME_UNIT, style);
 									StyleConstants.setForeground(style, Color.BLACK);
 									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " WITH COST ", style);
 									StyleConstants.setForeground(style, Color.BLUE);
@@ -354,11 +354,11 @@ public class H_ResultsPerspective {
 						StyleConstants.setForeground(style, Color.BLACK);
 						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT TIME = ", style);
 						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), _view.getTotalAlignmentTime() + " s.\n", style); 
+						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), _view.getTotalAlignmentTime() + Constants.TIME_UNIT + "\n", style); 
 						StyleConstants.setForeground(style, Color.BLACK);
 						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> AVG ALIGNMENT TIME = ", style);
 						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), _view.getTotalAlignmentTime()/total_number_of_traces_analyzed + " s.\n", style); 
+						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), _view.getTotalAlignmentTime()/total_number_of_traces_analyzed + Constants.TIME_UNIT + "\n", style); 
 
 
 						StyleConstants.setForeground(style, Color.BLACK);

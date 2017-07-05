@@ -140,6 +140,7 @@ public class ResultsPerspective extends JDialog {
 			private static final int ALIGNMENT_FILE_POS = 5;
 			private static final int DOMAIN_FILE_POS = 6;
 			private static final int PROBLEM_FILE_POS = DOMAIN_FILE_POS + 1;
+			private static final int TIME_CONVERSION_COEFF = 1000;
 
 			public void run() {
 				try {
@@ -255,6 +256,8 @@ public class ResultsPerspective extends JDialog {
 									}
 								}
 								processStdOutReader.close();
+								float traceAlignmentTimeMillisecs = Float.parseFloat(traceAlignmentTime) * TIME_CONVERSION_COEFF;
+								traceAlignmentTime = traceAlignmentTimeMillisecs+"";
 
 								// wait for the process to return to read the generated outputs
 								process.waitFor();
@@ -299,7 +302,7 @@ public class ResultsPerspective extends JDialog {
 									StyleConstants.setForeground(style, Color.decode("#009933"));
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ALIGNED IN ", style);	 
 									StyleConstants.setForeground(style, Color.BLUE);
-									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentTime + " s.", style);
+									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), traceAlignmentTime + Constants.TIME_UNIT, style);
 									StyleConstants.setForeground(style, Color.BLACK);
 									resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), " WITH COST ", style);
 									StyleConstants.setForeground(style, Color.BLUE);
@@ -474,11 +477,11 @@ public class ResultsPerspective extends JDialog {
 		StyleConstants.setForeground(style, Color.BLACK);
 		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT TIME = ", style);
 		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime + " s.\n", style); 
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime + Constants.TIME_UNIT + "\n", style); 
 		StyleConstants.setForeground(style, Color.BLACK);
 		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> AVG ALIGNMENT TIME = ", style);
 		StyleConstants.setForeground(style, Color.BLUE);
-		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime/totalAnalyzedTracesNumber + " s.\n", style); 
+		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), totalAlignmentTime/totalAnalyzedTracesNumber + Constants.TIME_UNIT + "\n", style); 
 
 
 		StyleConstants.setForeground(style, Color.BLACK);
@@ -542,6 +545,7 @@ public class ResultsPerspective extends JDialog {
 	public DefaultStyledDocument getResultDocument() {
 		return resultDocument;
 	}
+	
 	public Thread getPlannerThread() {
 		return plannerThread;
 	}
