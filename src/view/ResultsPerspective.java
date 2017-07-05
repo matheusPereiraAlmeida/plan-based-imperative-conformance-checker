@@ -9,7 +9,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -38,6 +37,7 @@ import control.H_ResultsPerspective;
 import main.Constants;
 import main.Trace;
 import main.Utilities;
+import utils.StreamGobbler;
 
 public class ResultsPerspective extends JDialog {
 
@@ -67,8 +67,6 @@ public class ResultsPerspective extends JDialog {
 	private int tracesWithFailureNumber = 0;
 	private int alignedTracesAmount = 0;
 	private Vector<String> tracesWithFailureVector = new Vector<String>();
-
-	//private double log_fitness;
 
 	protected H_ResultsPerspective _handler;
 
@@ -141,7 +139,7 @@ public class ResultsPerspective extends JDialog {
 			
 			private static final int ALIGNMENT_FILE_POS = 5;
 			private static final int DOMAIN_FILE_POS = 6;
-			private static final int PROBLEM_FILE_POS = 7;
+			private static final int PROBLEM_FILE_POS = DOMAIN_FILE_POS + 1;
 
 			public void run() {
 				try {
@@ -445,6 +443,7 @@ public class ResultsPerspective extends JDialog {
 		resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), ">> ALIGNMENT IN PROGRESS.......\n\n", style);
 	}
 	
+	
 	/**
 	 * Display the overview of the results of the planner execution to the user.
 	 * 
@@ -565,32 +564,6 @@ public class ResultsPerspective extends JDialog {
 
 	public void setDuplicatedTracesHashtable(Hashtable<String, String> duplicatedTracesHashtable) {
 		this.duplicatedTracesHashtable = duplicatedTracesHashtable;
-	}
-	
-	/**
-	 * Class for reading and printing an InputStream on a separated thread.
-	 *
-	 */
-	class StreamGobbler extends Thread {
-		InputStream is;
-		String type;
-
-		StreamGobbler(InputStream is, String type) {
-			this.is = is;
-			this.type = type;
-		}
-
-		public void run() {
-			try {
-				InputStreamReader isr = new InputStreamReader(is);
-				BufferedReader br = new BufferedReader(isr);
-				String line=null;
-				while ( (line = br.readLine()) != null)
-					System.out.println(type + ">" + line);    
-			} catch (IOException ioe) {
-				ioe.printStackTrace();  
-			}
-		}
 	}
 
 }
