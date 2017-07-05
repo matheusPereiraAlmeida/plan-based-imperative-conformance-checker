@@ -259,7 +259,7 @@ public class ResultsPerspective extends JDialog {
 						traceIdMatcher.find();
 						int traceId = Integer.parseInt(traceIdMatcher.group());
 
-						Trace trace = Constants.getAllTracesVector().elementAt(traceId);
+						Trace trace = Constants.getAllTracesVector().elementAt(traceId - 1);
 
 						// check execution results
 						BufferedReader processOutputReader = new BufferedReader(new FileReader(alignmentFile));
@@ -268,7 +268,10 @@ public class ResultsPerspective extends JDialog {
 
 							// planner script failed unexpectedly
 							StyleConstants.setForeground(style, Color.RED);
-							resultsPerspective.getResultDocument().insertString(resultsPerspective.getResultDocument().getLength(), "ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
+							resultsPerspective.getResultDocument().insertString(
+									resultsPerspective.getResultDocument().getLength(), 
+									"ATTENTION: A TRANSLATION ERROR HAS BEEN OBSERVED!\n", style);	 
+
 							tracesWithFailureNumber++;
 							tracesWithFailureVector.addElement(trace.getTraceName());
 
@@ -317,7 +320,6 @@ public class ResultsPerspective extends JDialog {
 							totalAlignmentTime += Float.parseFloat(traceAlignmentTime);
 						}
 						processOutputReader.close();
-
 
 						resultsPerspective.getAlignedTracesComboBox().insertItemAt(trace.getTraceName(), traceIndex);
 						traceIndex += 1;

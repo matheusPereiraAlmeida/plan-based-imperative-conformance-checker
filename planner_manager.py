@@ -11,9 +11,8 @@ SRC_DIR = path.join(FD_DIR, 'Conformance_Checking')
 DEST_DIR = path.join(FD_DIR, 'plans_found')
 DEST_FILE = path.join(DEST_DIR, 'alignment_')
 
-PLANNER_MANAGER_OFFSET = 1
-ALIGNMENT_FILE_POS = PLANNER_MANAGER_OFFSET + 5
-DOMAIN_FILE_POS = PLANNER_MANAGER_OFFSET + 6
+ALIGNMENT_FILE_POS = 5
+DOMAIN_FILE_POS = 6
 PROBLEM_FILE_POS = DOMAIN_FILE_POS + 1
 PLANNER_INPUT_EXT = '.pddl'
 DOMAIN_FILE_PATTERN = 'domain*'
@@ -43,7 +42,7 @@ if __name__ == '__main__':
     # '--search',
     # '< chosen_strategy >']
 
-    planner_args = list(sys.argv)
+    planner_args = sys.argv[1:]
 
     for domain in glob.glob(path.join(SRC_DIR, DOMAIN_FILE_PATTERN)):
         # extract trace number
@@ -58,7 +57,7 @@ if __name__ == '__main__':
         planner_args[ALIGNMENT_FILE_POS] = alignment
         planner_args[DOMAIN_FILE_POS] = domain
         planner_args[PROBLEM_FILE_POS] = problem
-        process = subprocess.Popen(planner_args[1:], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(planner_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # get planner search time from process std out
         out, err = process.communicate()
