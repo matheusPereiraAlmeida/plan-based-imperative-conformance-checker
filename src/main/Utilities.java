@@ -275,9 +275,11 @@ public class Utilities {
 	 * @return true if OS is 64 bits.
 	 */
 	public static boolean is64bitsOS() {
-		String arch = System.getenv("PROCESSOR_ARCHITECTURE");
+		String osArch = System.getProperty("os.arch");
+		String winArch = System.getenv("PROCESSOR_ARCHITECTURE");
 		String wow64Arch = System.getenv("PROCESSOR_ARCHITEW6432");
-		return arch != null && arch.endsWith("64") || wow64Arch != null && wow64Arch.endsWith("64");
+		
+		return osArch != null && osArch.endsWith("64") || winArch != null && winArch.endsWith("64") || wow64Arch != null && wow64Arch.endsWith("64");
 	}
 
 	public static String getCorrectFormatting(String string)  {

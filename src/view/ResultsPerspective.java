@@ -9,11 +9,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -234,6 +236,10 @@ public class ResultsPerspective extends JDialog {
 								Process process = processBuilder.start();
 
 								//System.out.println(Arrays.toString(command));
+								
+								// read std err in separated thread
+								StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR");
+								errorGobbler.start();
 
 								// read trace alignment time from process std out
 								BufferedReader processStdOutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -365,7 +371,7 @@ public class ResultsPerspective extends JDialog {
 
 
 	/**
-	 * Build the arguments list needed to launch Fast-Downard planner, tuned according to user selections. 
+	 * Build the arguments list needed to launch Fast-Downward planner, tuned according to user selections. 
 	 * Notice that, by default, the domain and problem files are not indicate and should be defined before running 
 	 * the command.
 	 * 
@@ -379,7 +385,7 @@ public class ResultsPerspective extends JDialog {
 		File fdScript = new File("fast-downward/fast-downward.py");
 		commandComponents.add(fdScript.getCanonicalPath());
 
-		// Fast-Downard is assumed to be built in advance both for 32 and 64 bits OS (being them Windows or Unix-like).
+		// Fast-Downward is assumed to be built in advance both for 32 and 64 bits OS (being them Windows or Unix-like).
 		commandComponents.add("--build");
 		if (Utilities.is64bitsOS())
 			commandComponents.add("release64");
@@ -391,7 +397,7 @@ public class ResultsPerspective extends JDialog {
 
 		commandComponents.add("");  // domain file placeholder
 		commandComponents.add("");  // problem file placeholder
-
+		
 		// insert heuristic and search strategy according to user selection
 		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected()) {
 			commandComponents.add("--heuristic");
@@ -545,6 +551,29 @@ public class ResultsPerspective extends JDialog {
 
 	public void setDuplicatedTracesHashtable(Hashtable<String, String> duplicatedTracesHashtable) {
 		this.duplicatedTracesHashtable = duplicatedTracesHashtable;
+	}
+	
+	
+	class StreamGobbler extends Thread {
+		InputStream is;
+		String type;
+
+		StreamGobbler(InputStream is, String type) {
+			this.is = is;
+			this.type = type;
+		}
+
+		public void run() {
+			try {
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+				String line=null;
+				while ( (line = br.readLine()) != null)
+					System.out.println(type + ">" + line);    
+			} catch (IOException ioe) {
+				ioe.printStackTrace();  
+			}
+		}
 	}
 
 }
