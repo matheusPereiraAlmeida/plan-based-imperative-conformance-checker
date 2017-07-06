@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import glob
 import subprocess
 import re
@@ -5,8 +7,8 @@ import sys
 
 from os import path
 
-# to be kept equal to equivalent constants in ResultPerspective.java
-FD_DIR = path.join(path.dirname(path.abspath(__file__)), 'fast-downward')
+# to be kept equal to equivalent constants in Java program
+FD_DIR = 'fast-downward'
 SRC_DIR = path.join(FD_DIR, 'Conformance_Checking')
 DEST_DIR = path.join(FD_DIR, 'plans_found')
 DEST_FILE = path.join(DEST_DIR, 'alignment_')
@@ -26,10 +28,9 @@ TIME_CONVERSION_COEFF = 1000
 
 if __name__ == '__main__':
 
-    # the argument list has to match the following structure:
+    # the argument list passe by Java program has to match the following structure:
     #
-    # ['< planner_manager_path >',  # to be discarded
-    # 'python',
+    # ['python',
     # '.../fast-downward/fast-downward.py',
     # '--build',
     # '<build_id>',
@@ -42,7 +43,7 @@ if __name__ == '__main__':
     # '--search',
     # '< chosen_strategy >']
 
-    planner_args = sys.argv[1:]
+    planner_args = sys.argv[:]
 
     for domain in glob.glob(path.join(SRC_DIR, DOMAIN_FILE_PATTERN)):
         # extract trace number
@@ -70,5 +71,6 @@ if __name__ == '__main__':
         trace_alignment_time_ms = float(trace_alignment_time) * TIME_CONVERSION_COEFF
 
         # append runtime to output file
-        with open(alignment, 'a') as alignment_file:
-            alignment_file.write(SEARCH_TIME_ENTRY_PREFIX + str(trace_alignment_time_ms))
+        alignment_file = open(alignment, 'a')
+        alignment_file.write(SEARCH_TIME_ENTRY_PREFIX + str(trace_alignment_time_ms))
+        alignment_file.close()
