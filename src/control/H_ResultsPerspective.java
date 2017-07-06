@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
 
 import main.Constants;
 import main.Trace;
@@ -82,149 +81,114 @@ public class H_ResultsPerspective {
 		_view.getAlignedTracesCombobox().addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent event) {
 
-				String selected_aligned_trace_name = (String) _view.getAlignedTracesCombobox().getSelectedItem();
+				String selectedAlignedTraceName = (String) _view.getAlignedTracesCombobox().getSelectedItem();
+				Style style = _view.getStyle();
 
-				if (event.getStateChange() == ItemEvent.SELECTED && !(selected_aligned_trace_name.equalsIgnoreCase("Event Log")) ) {						
+
+				if (event.getStateChange() == ItemEvent.SELECTED && !(selectedAlignedTraceName.equalsIgnoreCase("Event Log")) ) {
+					// show trace-specific results
+
 					_view.resetResultsArea();
 
-					String number_of_selected_trace = selected_aligned_trace_name.replace("Trace#", "");
+					String selectedTraceId = selectedAlignedTraceName.replace("Trace#", "");
+					String traceAlignmentCost = new String();  
+					String traceAlignmentTime = new String();  
+					Vector<String> pddlAlignmentMovesVector = new Vector<String>();
 
 					try {
 
-						StyleContext context = new StyleContext();
-						Style style = context.addStyle("test", null);   
+						File alignment_file = new File("fast-downward/plans_found/alignment_" + selectedTraceId);
 
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> EVENT LOG FILE = ", style);
-						StyleConstants.setForeground(style, Color.RED);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), Constants.getEventLogFileName(), style);
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " (" + selected_aligned_trace_name + ")\n" , style);
-
-						String trace_alignment_cost = new String();  
-						String trace_alignment_time = new String();  
-						Vector<String> PDDL_alignment_moves_vector = new Vector<String>();
-
-						File alignment_file = null;
-
-						if(duplicatedTracesHashtable.containsKey(selected_aligned_trace_name)) {
-
-							String number_of_identical_trace = duplicatedTracesHashtable.get(selected_aligned_trace_name).replace("Trace#", "");
-							alignment_file = new File("fast-downward/plans_found/alignment_" + number_of_identical_trace);
-
-							StyleConstants.setForeground(style, Color.MAGENTA);
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> SKIPPED! IDENTICAL TO ", style);
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "Trace#" + number_of_identical_trace + "\n", style);
-
-
-						}
-						else {
-							alignment_file = new File("fast-downward/plans_found/alignment_" + number_of_selected_trace);
-						}
-
-						BufferedReader br2;
-
-						br2 = new BufferedReader(new FileReader(alignment_file));
-						String line;
-
-						while ((line = br2.readLine()) != null) {
-
-
-							if(line.startsWith("; cost = ")) {
-
-								trace_alignment_cost = line.replace("; cost = ", "");
-								trace_alignment_cost = trace_alignment_cost.replace(" (general cost)", "");
-
+						// parse alignment file
+						BufferedReader alignmentFileReader = new BufferedReader(new FileReader(alignment_file));
+						String alignmentFileLine;
+						while ((alignmentFileLine = alignmentFileReader.readLine()) != null) {
+							if(alignmentFileLine.startsWith("; cost = ")) {
+								traceAlignmentCost = alignmentFileLine.replace("; cost = ", "");
+								traceAlignmentCost = traceAlignmentCost.replace(" (general cost)", "");
 							}
-							else if(line.startsWith("; searchtime = "))  {
-
-								trace_alignment_time = line.replace("; searchtime = ", "");
+							else if(alignmentFileLine.startsWith("; searchtime = "))  {
+								traceAlignmentTime = alignmentFileLine.replace("; searchtime = ", "");
 							}
 							else {
-
-								PDDL_alignment_moves_vector.addElement(line);
+								pddlAlignmentMovesVector.addElement(alignmentFileLine);
 							}
 						}
-						br2.close();
+						alignmentFileReader.close();
 
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> SEARCH ALGORITHM = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
 
+						// display trace overview
+						_view.appendToResults(">> EVENT LOG FILE = ", Color.BLACK);
+						_view.appendToResults(Constants.getEventLogFileName(), Color.RED);
+						_view.appendToResults(" (" + selectedAlignedTraceName + ")\n", Color.BLACK);
+
+
+						_view.appendToResults(">> SEARCH ALGORITHM = ", Color.BLACK);
 						if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected())
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "Blind A* (Cost-Optimal) \n", style);
+							_view.appendToResults("Blind A* (Cost-Optimal) \n", Color.BLUE);
 						else
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "Lazy Greedy (Suboptimal) \n", style);
+							_view.appendToResults("Lazy Greedy (Suboptimal) \n", Color.BLUE);
 
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ALIGNMENT TIME = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_time + Constants.TIME_UNIT + "\n", style); 
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ALIGNMENT COST = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_cost + "\n", style); 
+						_view.appendToResults(">> ALIGNMENT TIME = ", Color.BLACK);
+						_view.appendToResults(traceAlignmentTime + Constants.TIME_UNIT + "\n", Color.BLUE);
+						_view.appendToResults(">> ALIGNMENT COST = ", Color.BLACK);
+						_view.appendToResults(traceAlignmentCost + "\n", Color.BLUE);
 
 						StyleConstants.setBold(style, true);
-						StyleConstants.setForeground(style, Color.decode("#009933"));
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n--- ALIGNED TRACE ---\n\n", style);
-
+						_view.appendToResults("\n--- ALIGNED TRACE ---\n\n", Color.decode("#009933"));
 						StyleConstants.setBold(style, false);
 
-						for(int k=0;k<PDDL_alignment_moves_vector.size();k++) {							
 
-							String align_move = PDDL_alignment_moves_vector.elementAt(k);
+						// display alignment moves
+						for(String alignmentMove : pddlAlignmentMovesVector) {
 
-							if(align_move.startsWith("(movesync#")) {
+							if(alignmentMove.startsWith("(movesync#")) {
 
-								align_move = align_move.replace("(movesync#", "");
-								align_move = align_move.substring(0,align_move.lastIndexOf("#"));
+								alignmentMove = alignmentMove.replace("(movesync#", "");
+								alignmentMove = alignmentMove.substring(0, alignmentMove.lastIndexOf("#"));
 
-								StyleConstants.setStrikeThrough (style,false);
-								StyleConstants.setForeground(style, Color.BLACK);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), align_move + "\n", style);
+								StyleConstants.setStrikeThrough (style, false);
+								_view.appendToResults(alignmentMove + "\n", Color.BLACK);
 
 							}
-							else if(align_move.startsWith("(moveinthemodel#")) {
+							else if(alignmentMove.startsWith("(moveinthemodel#")) {
 
-								align_move = align_move.replace("(moveinthemodel#", "");
-								align_move = align_move.substring(0,align_move.lastIndexOf(" )"));
+								alignmentMove = alignmentMove.replace("(moveinthemodel#", "");
+								alignmentMove = alignmentMove.substring(0,alignmentMove.lastIndexOf(" )"));
 
-								StyleConstants.setStrikeThrough (style,false);
-								StyleConstants.setForeground(style, Color.BLUE);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), align_move , style);
+								StyleConstants.setStrikeThrough (style, false);
+								_view.appendToResults(alignmentMove, Color.BLUE);
 
 								if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) {
-									StyleConstants.setItalic(style,true);
-									StyleConstants.setForeground(style, Color.BLACK);
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " [cost " + Utilities.getCostOfActivity(align_move, "move_in_the_model") + "]", style);
-									StyleConstants.setItalic(style,false);
+									StyleConstants.setItalic(style, true);
+									_view.appendToResults(
+											" [cost " + Utilities.getCostOfActivity(alignmentMove, "move_in_the_model") + "]",
+											Color.BLACK);
+									StyleConstants.setItalic(style, false);
 								}
-
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n", style);
+								_view.appendToResults("\n", Color.BLACK);
 
 							}
-							else if(align_move.startsWith("(moveinthelog#")) {
+							else if(alignmentMove.startsWith("(moveinthelog#")) {
 
-								align_move = align_move.replace("(moveinthelog#", "");
-								align_move = align_move.substring(0,align_move.indexOf("#"));				  	   	    		
+								alignmentMove = alignmentMove.replace("(moveinthelog#", "");
+								alignmentMove = alignmentMove.substring(0,alignmentMove.indexOf("#"));				  	   	    		
 
 								StyleConstants.setStrikeThrough (style,true);
-								StyleConstants.setForeground(style, Color.RED);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), align_move, style);
+								_view.appendToResults(alignmentMove, Color.RED);
 
 								if(Constants.getPlannerPerspective().getCostCheckBox().isSelected()) {
-									StyleConstants.setStrikeThrough (style,false);
-									StyleConstants.setItalic(style,true);
-									StyleConstants.setForeground(style, Color.BLACK);
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " [cost " + Utilities.getCostOfActivity(align_move, "move_in_the_log") + "]", style);
-									StyleConstants.setItalic(style,false);
+									StyleConstants.setStrikeThrough (style, false);
+									StyleConstants.setItalic(style, true);
+									_view.appendToResults(
+											" [cost " + Utilities.getCostOfActivity(alignmentMove, "move_in_the_log") + "]",
+											Color.BLACK);
+									StyleConstants.setItalic(style, false);
 								}
-
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n", style);
+								_view.appendToResults("\n", Color.BLACK);
 							}
 						}
+
 					}
 					catch (FileNotFoundException e) {
 						e.printStackTrace();
@@ -237,163 +201,69 @@ public class H_ResultsPerspective {
 					} 
 
 					_view.getResultsArea().setCaretPosition(0);
-				}	
 
-				else if(event.getStateChange() == ItemEvent.SELECTED && (selected_aligned_trace_name.equalsIgnoreCase("Event Log"))) {
+
+				} else if (event.getStateChange() == ItemEvent.SELECTED && (selectedAlignedTraceName.equalsIgnoreCase("Event Log"))) {
+					// show an overview of the results
 
 					try {
 
 						_view.resetResultsArea();
+						_view.showPlannerSettings();
 
-						StyleContext context = new StyleContext();
-						Style style = context.addStyle("test", null);     
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> EVENT LOG FILE = ", style);
-						StyleConstants.setForeground(style, Color.RED);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), Constants.getEventLogFileName() + "\n", style);
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> SEARCH ALGORITHM = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-
-						if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected())
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "Blind A* (Cost-Optimal) \n", style);
-						else
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "Lazy Greedy (Suboptimal) \n", style);
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> SIZE OF THE EVENT LOG = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), Constants.getAllTracesVector().size() + "\n", style);
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ANALYZE FROM ", style);	            
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "trace#" + traceIdToCheckFrom, style);	      
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " TO ", style);	
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "trace#" + traceIdToCheckTo + "\n", style);	      
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> DISCARD DUPLICATED TRACES = ", style);	      
-
-						if(Constants.isDiscardDuplicatedTraces()) {
-							StyleConstants.setForeground(style, Color.RED);
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "YES \n", style);	         
-						}
-						else {
-							StyleConstants.setForeground(style, Color.BLUE);
-							_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "NO \n", style); 
-						}
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ANALYZE TRACES IN THE LOG HAVING LENGHT BETWEEN ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), minTracesLength + "", style);	      
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " AND ", style);	
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), maxTracesLength + "\n\n", style);	      
+						_view.appendToResults(">> RECAP OF THE ALIGNMENT\n\n", Color.BLACK);
 
 
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> RECAP OF THE ALIGNMENT\n\n", style);	      
-
-						for(int k=traceIdToCheckFrom-1;k<traceIdToCheckTo;k++) {
+						for(int k = traceIdToCheckFrom - 1; k < traceIdToCheckTo; k++) {
 
 							Trace trace = Constants.getAllTracesVector().elementAt(k);
 
 							if(trace.getTraceLength() >= minTracesLength && trace.getTraceLength() <= maxTracesLength)  {		
 
-								StyleConstants.setForeground(style, Color.BLACK);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> ", style);
-								StyleConstants.setForeground(style, Color.BLUE);
-								_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace.getTraceName() + " ", style);	 
-
-								if(Constants.isDiscardDuplicatedTraces() && !Constants.getAllTracesHashtable().containsValue(trace.getTraceName()) && Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {  	            
+								_view.appendToResults(">> ", Color.BLACK);
+								_view.appendToResults(trace.getTraceName() + " ", Color.BLUE);
 
 
-									StyleConstants.setForeground(style, Color.RED);   	        
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "SKIPPED: equivalent to " + Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString()) + "\n", style);	    	            
-								}
-								else {
+								if(Constants.isDiscardDuplicatedTraces()
+										&& !Constants.getAllTracesHashtable().containsValue(trace.getTraceName())
+										&& Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {  	            
 
-									String trace_alignment_cost = new String();  
-									String trace_alignment_time = new String();  
+									_view.appendToResults("SKIPPED: equivalent to "
+											+ Constants.getAllTracesHashtable()
+											.get(trace.getTrace_textual_content().toString()), Color.RED);
 
-									File alignment_file = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
+								} else {
 
-									BufferedReader br2 = new BufferedReader(new FileReader(alignment_file)); 
-									String line;
-									while ((line = br2.readLine()) != null) {
+									String traceAlignmentCost = new String();  
+									String traceAlignmentTime = new String();  
+									File alignmentFile = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
 
-										if(line.startsWith("; cost = ")) {
-											trace_alignment_cost = line.replace("; cost = ", "");
-											trace_alignment_cost = trace_alignment_cost.replace(" (general cost)", "");
+									// parse alignment file
+									BufferedReader alignmentFileReader = new BufferedReader(new FileReader(alignmentFile)); 
+									String alignmentFileLine;
+									while ((alignmentFileLine = alignmentFileReader.readLine()) != null) {
+										if(alignmentFileLine.startsWith("; cost = ")) {
+											traceAlignmentCost = alignmentFileLine.replace("; cost = ", "");
+											traceAlignmentCost = traceAlignmentCost.replace(" (general cost)", "");
 										}
-										else if(line.startsWith("; searchtime = "))  {
-											trace_alignment_time = line.replace("; searchtime = ", "");
+										else if(alignmentFileLine.startsWith("; searchtime = "))  {
+											traceAlignmentTime = alignmentFileLine.replace("; searchtime = ", "");
 										}
-										//System.out.println(line);
 									}
-									br2.close();	
+									alignmentFileReader.close();	
 
-									StyleConstants.setForeground(style, Color.decode("#009933"));
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "ALIGNED IN ", style);	 
-									StyleConstants.setForeground(style, Color.BLUE);
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_time + Constants.TIME_UNIT, style);
-									StyleConstants.setForeground(style, Color.BLACK);
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), " WITH COST ", style);
-									StyleConstants.setForeground(style, Color.BLUE);
-									_view.getResultDocument().insertString(_view.getResultDocument().getLength(), trace_alignment_cost + "\n", style);
+									_view.appendToResults("ALIGNED IN ", Color.decode("#009933"));
+									_view.appendToResults(traceAlignmentTime + Constants.TIME_UNIT, Color.BLUE);
+									_view.appendToResults(" WITH COST ", Color.BLACK);
+									_view.appendToResults(traceAlignmentCost + "\n", Color.BLUE);
 
 								}
 							}
 						}
 
-						int total_number_of_traces = traceIdToCheckTo - traceIdToCheckFrom + 1;
-						int total_number_of_traces_analyzed = total_number_of_traces;
-
-						StyleConstants.setForeground(style, Color.decode("#009933"));
-						StyleConstants.setBold(style, true);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n--- RESULTS OF THE ALIGNMENT ---\n", style);
-						StyleConstants.setBold(style, false);
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n>> NUMBER OF TRACES ANALYZED = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), total_number_of_traces_analyzed + "\n", style); 
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> NUMBER OF TRACES REPAIRED = ", style);
-						StyleConstants.setForeground(style, Color.RED);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), alignedTracesAmount +"\n", style); 
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT TIME = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), totalAlignmentTime + Constants.TIME_UNIT + "\n", style); 
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> AVG ALIGNMENT TIME = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), totalAlignmentTime/total_number_of_traces_analyzed + Constants.TIME_UNIT + "\n", style); 
-
-
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), "\n>> TOTAL ALIGNMENT COST = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), totalAlignmentCost + "\n", style); 
-						StyleConstants.setForeground(style, Color.BLACK);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), ">> AVG ALIGNMENT COST = ", style);
-						StyleConstants.setForeground(style, Color.BLUE);
-						_view.getResultDocument().insertString(_view.getResultDocument().getLength(), totalAlignmentCost/total_number_of_traces_analyzed + "\n", style);  
+						_view.showPlannerResultsOverview();
 
 					}
-					//catch (FileNotFoundException e) {
-					//e.printStackTrace();
-					//} 
 					catch (BadLocationException be) {
 						be.printStackTrace();
 					} 

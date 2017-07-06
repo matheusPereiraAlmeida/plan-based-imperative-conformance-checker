@@ -243,4 +243,12 @@ public class ResultsPerspective extends JDialog {
 		this.resultsLabel = resultsLabel;
 	}
 
+	public Style getStyle() {
+		return style;
+	}
+
+	public void setStyle(Style style) {
+		this.style = style;
+	}
+
 }
