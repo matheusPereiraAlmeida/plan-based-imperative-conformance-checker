@@ -388,7 +388,7 @@ public class H_ResultsPerspective {
 								_view.appendToResults("SKIPPED: equivalent to "
 										+ Constants.getAllTracesHashtable()
 										.get(trace.getTrace_textual_content().toString()), Color.RED);
-								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);   	   	            
+								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);
 							}
 							else {
 
@@ -411,10 +411,14 @@ public class H_ResultsPerspective {
 
 					_view.appendToResults("\n>> ALIGNMENT IN PROGRESS.......\n\n", Color.BLACK);
 
+					// set JVM parameter to make the planner manager run on Jython
+					System.setProperty("python.console.encoding","UTF-8");
+
 					String[] commandArgs = buildFastDownardCommandArgs();
 					PythonInterpreter.initialize(System.getProperties(), null, commandArgs);
 					PythonInterpreter interpreter = new PythonInterpreter();
 					interpreter.execfile("planner_manager.py");
+					interpreter.close();
 
 
 					/* PLANNER OUTPUTS PROCESSING */
