@@ -11,6 +11,5 @@
 	<classpathentry kind="lib" path="lib/xpp3-1.1.4c.jar"/>
 	<classpathentry kind="lib" path="Plan_based_alignment.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="C:/Users/Giacomo/Documents/Universita/_Thesis/planning/Tool/Plan-based_Imperative_Conf_Checker/lib/jython-standalone-2.7.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -22,11 +22,10 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
-import org.python.util.PythonInterpreter;
-
 import main.Constants;
 import main.Trace;
 import main.Utilities;
+import utils.StreamGobbler;
 import view.PlannerPerspective;
 import view.ResultsPerspective;
 
@@ -287,6 +286,16 @@ public class H_ResultsPerspective {
 	public String[] buildFastDownardCommandArgs() throws IOException {
 		ArrayList<String> commandComponents = new ArrayList<>();
 
+		/* begin of command args for planner manager */
+
+		commandComponents.add("python");
+
+		File plannerManagerScript = new File("planner_manager.py");
+		commandComponents.add(plannerManagerScript.getCanonicalPath());
+
+
+		/* begin of command args for Fast-Downward */
+
 		commandComponents.add("python");
 
 		File fdScript = new File("fast-downward/fast-downward.py");
@@ -407,18 +416,28 @@ public class H_ResultsPerspective {
 					}
 
 
+					
 					/* PLANNER INVOCATION */
 
-					_view.appendToResults("\n>> ALIGNMENT IN PROGRESS.......\n\n", Color.BLACK);
-
-					// set JVM parameter to make the planner manager run on Jython
-					System.setProperty("python.console.encoding","UTF-8");
-
+					_view.appendToResults("\n>> ALIGNMENT IN PROGRESS.......\n\n", Color.BLACK);					
+					
 					String[] commandArgs = buildFastDownardCommandArgs();
-					PythonInterpreter.initialize(System.getProperties(), null, commandArgs);
-					PythonInterpreter interpreter = new PythonInterpreter();
-					interpreter.execfile("planner_manager.py");
-					interpreter.close();
+
+					// execute external planner script and wait for results
+					ProcessBuilder processBuilder = new ProcessBuilder(commandArgs);
+					Process process = processBuilder.start();
+
+					//System.out.println(Arrays.toString(command));
+
+					// read std out & err in separated thread
+					StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR");
+					StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT");
+					errorGobbler.start();
+					outputGobbler.start();
+
+					// wait for the process to return to read the generated outputs
+					process.waitFor();
+					
 
 
 					/* PLANNER OUTPUTS PROCESSING */
