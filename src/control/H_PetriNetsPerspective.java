@@ -211,8 +211,8 @@ public class H_PetriNetsPerspective {
 							trace.getTraceAlphabet().addElement(act);
 						}
 
-						if(!Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {
-							Constants.getAllTracesHashtable().put(trace.getTrace_textual_content().toString(),trace.getTraceName());
+						if(!Constants.getAllTracesHashtable().containsKey(trace.getTraceTextualContent().toString()))  {
+							Constants.getAllTracesHashtable().put(trace.getTraceTextualContent().toString(),trace.getTraceName());
 						}
 					}
 

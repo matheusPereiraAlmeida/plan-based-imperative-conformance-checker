@@ -338,7 +338,7 @@ public class H_TracePerspective {
 	private void updateTrace(Trace trace) {
 
 		trace.setTraceContentVector(new Vector<String>());
-		trace.setTrace_textual_content(new StringBuffer());
+		trace.setTraceTextualContent(new StringBuffer());
 		trace.setTraceAlphabet(new Vector<String>());
 
 		if(!Constants.getEventLogFileName().equalsIgnoreCase("Created from scratch") && !Constants.getEventLogFileName().contains("(modified by the user)"))
@@ -352,16 +352,11 @@ public class H_TracePerspective {
 				trace.getTraceAlphabet().addElement(string);
 			}
 
-			trace.getTrace_textual_content().append(string);
+			trace.getTraceTextualContent().append(string);
 			if(j<_view.getTraceListModel().size()-1)
-				trace.getTrace_textual_content().append(",");
+				trace.getTraceTextualContent().append(",");
 		}
 
-		/*
-		System.out.println("************************");
-		System.out.println(trace.getTraceName());
-		System.out.println(trace.getOriginalTraceContentVector());
-		 */
 	}
 
 }

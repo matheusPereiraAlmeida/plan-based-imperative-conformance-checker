@@ -5,39 +5,39 @@ import java.util.Vector;
 public class Trace {
 
 	private String name;
-	private Vector<String> trace_alphabet;
-	private Vector<String> trace_content_vector;
-	private int trace_length;
-	private StringBuffer trace_textual_content;
+	private Vector<String> traceAlphabet;
+	private Vector<String> traceContentVector;
+	private int traceLength;
+	private StringBuffer traceTextualContent;
 
-	public Trace(String trace_name) {
-		name = trace_name;
-		trace_content_vector = new Vector<String>();
-		trace_textual_content = new StringBuffer();
+	public Trace(String traceName) {
+		name = traceName;
+		traceContentVector = new Vector<String>();
+		traceTextualContent = new StringBuffer();
 	}
 
 	public String getTraceName() {
 		return name;
 	}
 
-	public void setTraceName(String trace_name) {
-		name = trace_name;
+	public void setTraceName(String traceName) {
+		name = traceName;
 	}
 
 	public Vector<String> getTraceContentVector() {
-		return trace_content_vector;
+		return traceContentVector;
 	}
 
-	public void setTraceContentVector(Vector<String> trace_content) {
-		trace_content_vector = trace_content;
+	public void setTraceContentVector(Vector<String> traceContent) {
+		traceContentVector = traceContent;
 	}
 
 	public Vector<String> getTraceAlphabet() {
-		return trace_alphabet;
+		return traceAlphabet;
 	}
 
-	public void setTraceAlphabet(Vector<String> trace_alphabet) {
-		this.trace_alphabet = trace_alphabet;
+	public void setTraceAlphabet(Vector<String> traceAlphabet) {
+		this.traceAlphabet = traceAlphabet;
 	}
 
 	public String getTraceNumber() {
@@ -45,20 +45,20 @@ public class Trace {
 		return split[1];		
 	}
 
-	public StringBuffer getTrace_textual_content() {
-		return trace_textual_content;
+	public StringBuffer getTraceTextualContent() {
+		return traceTextualContent;
 	}
 
-	public void setTrace_textual_content(StringBuffer trace_textual_content) {
-		this.trace_textual_content = trace_textual_content;
+	public void setTraceTextualContent(StringBuffer traceTextualContent) {
+		this.traceTextualContent = traceTextualContent;
 	}
 
 	public int getTraceLength() {
-		return trace_length;
+		return traceLength;
 	}
 
-	public void setTraceLength(int trace_lenght) {
-		this.trace_length = trace_lenght;
+	public void setTraceLength(int traceLenght) {
+		this.traceLength = traceLenght;
 	}
 
 }

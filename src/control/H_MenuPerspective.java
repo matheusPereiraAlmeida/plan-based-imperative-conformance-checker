@@ -255,9 +255,9 @@ public class H_MenuPerspective {
 								String string = (String) loaded_trace_activities_vector.elementAt(j);
 								t.getTraceContentVector().addElement(string);
 
-								t.getTrace_textual_content().append(string);
+								t.getTraceTextualContent().append(string);
 								if(j<loaded_trace_activities_vector.size()-1)
-									t.getTrace_textual_content().append(",");
+									t.getTraceTextualContent().append(",");
 							}
 
 							Constants.getAllTracesVector().addElement(t);

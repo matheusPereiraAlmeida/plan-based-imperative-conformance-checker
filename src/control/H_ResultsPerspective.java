@@ -22,6 +22,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
+import org.apache.commons.lang3.SystemUtils;
+
 import main.Constants;
 import main.Trace;
 import main.Utilities;
@@ -96,10 +98,10 @@ public class H_ResultsPerspective {
 
 					try {
 
-						File alignment_file = new File("fast-downward/plans_found/alignment_" + selectedTraceId);
+						File alignmentFile = new File("fast-downward/plans_found/alignment_" + selectedTraceId);
 
 						// parse alignment file
-						BufferedReader alignmentFileReader = new BufferedReader(new FileReader(alignment_file));
+						BufferedReader alignmentFileReader = new BufferedReader(new FileReader(alignmentFile));
 						String alignmentFileLine;
 						while ((alignmentFileLine = alignmentFileReader.readLine()) != null) {
 							if(alignmentFileLine.startsWith("; cost = ")) {
@@ -225,11 +227,11 @@ public class H_ResultsPerspective {
 
 								if(Constants.isDiscardDuplicatedTraces()
 										&& !Constants.getAllTracesHashtable().containsValue(trace.getTraceName())
-										&& Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {  	            
+										&& Constants.getAllTracesHashtable().containsKey(trace.getTraceTextualContent().toString()))  {  	            
 
 									_view.appendToResults("SKIPPED: equivalent to "
 											+ Constants.getAllTracesHashtable()
-											.get(trace.getTrace_textual_content().toString()), Color.RED);
+											.get(trace.getTraceTextualContent().toString()), Color.RED);
 
 								} else {
 
@@ -286,9 +288,19 @@ public class H_ResultsPerspective {
 	public String[] buildFastDownardCommandArgs() throws IOException {
 		ArrayList<String> commandComponents = new ArrayList<>();
 
+		// determine which python interpreter must be used
+		String pythonInterpreter = "python";
+		if (SystemUtils.IS_OS_WINDOWS) {
+			if (Utilities.is64bitsOS()) {
+				pythonInterpreter = "python27amd64/" + pythonInterpreter;
+			} else {
+				pythonInterpreter = "python27/" + pythonInterpreter;
+			}
+		}
+		
 		/* begin of command args for planner manager */
 
-		commandComponents.add("python");
+		commandComponents.add(pythonInterpreter);
 
 		File plannerManagerScript = new File("planner_manager.py");
 		commandComponents.add(plannerManagerScript.getCanonicalPath());
@@ -296,7 +308,7 @@ public class H_ResultsPerspective {
 
 		/* begin of command args for Fast-Downward */
 
-		commandComponents.add("python");
+		commandComponents.add(pythonInterpreter);
 
 		File fdScript = new File("fast-downward/fast-downward.py");
 		commandComponents.add(fdScript.getCanonicalPath());
@@ -389,14 +401,14 @@ public class H_ResultsPerspective {
 
 							if(Constants.isDiscardDuplicatedTraces()
 									&& !Constants.getAllTracesHashtable().containsValue(trace.getTraceName())
-									&& Constants.getAllTracesHashtable().containsKey(trace.getTrace_textual_content().toString()))  {
+									&& Constants.getAllTracesHashtable().containsKey(trace.getTraceTextualContent().toString()))  {
 
 								// the trace is a duplicate of a previous one
 
-								String otherTrace = Constants.getAllTracesHashtable().get(trace.getTrace_textual_content().toString());
+								String otherTrace = Constants.getAllTracesHashtable().get(trace.getTraceTextualContent().toString());
 								_view.appendToResults("SKIPPED: equivalent to "
 										+ Constants.getAllTracesHashtable()
-										.get(trace.getTrace_textual_content().toString()), Color.RED);
+										.get(trace.getTraceTextualContent().toString()), Color.RED);
 								duplicatedTracesHashtable.put(trace.getTraceName(), otherTrace);
 							}
 							else {
@@ -427,7 +439,7 @@ public class H_ResultsPerspective {
 					ProcessBuilder processBuilder = new ProcessBuilder(commandArgs);
 					Process process = processBuilder.start();
 
-					//System.out.println(Arrays.toString(command));
+					//System.out.println(Arrays.toString(commandArgs));
 
 					// read std out & err in separated thread
 					StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR");

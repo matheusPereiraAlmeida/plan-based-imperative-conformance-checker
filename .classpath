@@ -11,5 +11,6 @@
 	<classpathentry kind="lib" path="lib/xpp3-1.1.4c.jar"/>
 	<classpathentry kind="lib" path="Plan_based_alignment.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/commons-lang3-3.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
