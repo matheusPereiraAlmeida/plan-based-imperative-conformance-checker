@@ -33,6 +33,18 @@ import view.ResultsPerspective;
 
 public class H_ResultsPerspective {
 
+	public static final String FAST_DOWNWARD_DIR = "fast-downward/";
+	public static final String PLANS_FOUND_DIR = FAST_DOWNWARD_DIR + "plans_found/";
+	public static final String PDDL_FILES_DIR = FAST_DOWNWARD_DIR + "Conformance_Checking/";
+	public static final String PDDL_EXT = ".pddl";
+	public static final String PDDL_DOMAIN_FILE_PREFIX = PDDL_FILES_DIR + "domain";
+	public static final String PDDL_PROBLEM_FILE_PREFIX = PDDL_FILES_DIR + "problem";
+	public static final String PLAN_FILE_PREFIX = PLANS_FOUND_DIR + "alignment_";
+	public static final String COST_ENTRY_PREFIX = "; cost = ";
+	public static final String SEARCH_TIME_ENTRY_PREFIX = "; searchtime = ";
+	public static final String TRACE_NAME_PREFIX = "Trace#";
+	public static final String COMMAND_ARG_PLACEHOLDER = "+";
+	
 	public ResultsPerspective _view = null;
 
 	private Thread plannerThread;
@@ -46,6 +58,8 @@ public class H_ResultsPerspective {
 	private int alignedTracesAmount = 0;
 	private float totalAlignmentCost = 0;
 	private float totalAlignmentTime = 0;
+	
+	private Pattern decimalNumberRegexPattern = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
 
 	public H_ResultsPerspective (ResultsPerspective i_view){
 		_view = i_view;
@@ -91,25 +105,28 @@ public class H_ResultsPerspective {
 
 					_view.resetResultsArea();
 
-					String selectedTraceId = selectedAlignedTraceName.replace("Trace#", "");
+					String selectedTraceId = selectedAlignedTraceName.replace(TRACE_NAME_PREFIX, "");
 					String traceAlignmentCost = new String();  
 					String traceAlignmentTime = new String();  
 					Vector<String> pddlAlignmentMovesVector = new Vector<String>();
 
 					try {
 
-						File alignmentFile = new File("fast-downward/plans_found/alignment_" + selectedTraceId);
+						File alignmentFile = new File(PLAN_FILE_PREFIX + selectedTraceId);
 
 						// parse alignment file
 						BufferedReader alignmentFileReader = new BufferedReader(new FileReader(alignmentFile));
 						String alignmentFileLine;
 						while ((alignmentFileLine = alignmentFileReader.readLine()) != null) {
-							if(alignmentFileLine.startsWith("; cost = ")) {
-								traceAlignmentCost = alignmentFileLine.replace("; cost = ", "");
-								traceAlignmentCost = traceAlignmentCost.replace(" (general cost)", "");
+							if(alignmentFileLine.startsWith(COST_ENTRY_PREFIX)) {
+								Matcher matcher = decimalNumberRegexPattern.matcher(alignmentFileLine);
+								matcher.find();
+								traceAlignmentCost = matcher.group();
 							}
-							else if(alignmentFileLine.startsWith("; searchtime = "))  {
-								traceAlignmentTime = alignmentFileLine.replace("; searchtime = ", "");
+							else if(alignmentFileLine.startsWith(SEARCH_TIME_ENTRY_PREFIX))  {
+								Matcher matcher = decimalNumberRegexPattern.matcher(alignmentFileLine);
+								matcher.find();
+								traceAlignmentTime = matcher.group();
 							}
 							else {
 								pddlAlignmentMovesVector.addElement(alignmentFileLine);
@@ -237,18 +254,21 @@ public class H_ResultsPerspective {
 
 									String traceAlignmentCost = new String();  
 									String traceAlignmentTime = new String();  
-									File alignmentFile = new File("fast-downward/plans_found/alignment_" + trace.getTraceNumber());
+									File alignmentFile = new File(PLAN_FILE_PREFIX + trace.getTraceNumber());
 
 									// parse alignment file
 									BufferedReader alignmentFileReader = new BufferedReader(new FileReader(alignmentFile)); 
 									String alignmentFileLine;
 									while ((alignmentFileLine = alignmentFileReader.readLine()) != null) {
-										if(alignmentFileLine.startsWith("; cost = ")) {
-											traceAlignmentCost = alignmentFileLine.replace("; cost = ", "");
-											traceAlignmentCost = traceAlignmentCost.replace(" (general cost)", "");
+										if(alignmentFileLine.startsWith(COST_ENTRY_PREFIX)) {
+											Matcher matcher = decimalNumberRegexPattern.matcher(alignmentFileLine);
+											matcher.find();
+											traceAlignmentCost = matcher.group();
 										}
-										else if(alignmentFileLine.startsWith("; searchtime = "))  {
-											traceAlignmentTime = alignmentFileLine.replace("; searchtime = ", "");
+										else if(alignmentFileLine.startsWith(SEARCH_TIME_ENTRY_PREFIX))  {
+											Matcher matcher = decimalNumberRegexPattern.matcher(alignmentFileLine);
+											matcher.find();
+											traceAlignmentTime = matcher.group();
 										}
 									}
 									alignmentFileReader.close();	
@@ -321,10 +341,10 @@ public class H_ResultsPerspective {
 			commandComponents.add("release32");
 
 		commandComponents.add("--plan-file");
-		commandComponents.add("+");  // output file placeholder
+		commandComponents.add(COMMAND_ARG_PLACEHOLDER);  // output file
 
-		commandComponents.add("+");  // domain file placeholder
-		commandComponents.add("+");  // problem file placeholder
+		commandComponents.add(COMMAND_ARG_PLACEHOLDER);  // domain file
+		commandComponents.add(COMMAND_ARG_PLACEHOLDER);  // problem file
 
 		// insert heuristic and search strategy according to user selection
 		if(Constants.getPlannerPerspective().getOptimalRadioButton().isSelected()) {
@@ -380,10 +400,10 @@ public class H_ResultsPerspective {
 					_view.showPlannerSettings();
 
 					// cleanup folders
-					File plansFoundFolder = new File("fast-downward/plans_found");
-					File conformanceCheckingFolder = new File("fast-downward/Conformance_Checking");
-					Utilities.deleteFolderContents(plansFoundFolder);
-					Utilities.deleteFolderContents(conformanceCheckingFolder);
+					File plansFoundDir = new File(PLANS_FOUND_DIR);
+					File pddlFilesDir = new File(PDDL_FILES_DIR);
+					Utilities.deleteFolderContents(plansFoundDir);
+					Utilities.deleteFolderContents(pddlFilesDir);
 
 
 					/* PLANNER INPUTS BUILDING */
@@ -417,8 +437,8 @@ public class H_ResultsPerspective {
 								// create PDDL encodings (domain & problem) for current trace
 								StringBuffer sbDomain = Utilities.createPropositionalDomain(trace);
 								StringBuffer sbProblem = Utilities.createPropositionalProblem(trace);
-								String sbDomainFileName = "fast-downward/Conformance_Checking/domain" + trace.getTraceNumber() + ".pddl";
-								String sbProblemFileName = "fast-downward/Conformance_Checking/problem" + trace.getTraceNumber() + ".pddl";
+								String sbDomainFileName = PDDL_DOMAIN_FILE_PREFIX + trace.getTraceNumber() + PDDL_EXT;
+								String sbProblemFileName = PDDL_PROBLEM_FILE_PREFIX + trace.getTraceNumber() + PDDL_EXT;
 								Utilities.writeFile(sbDomainFileName, sbDomain);
 								Utilities.writeFile(sbProblemFileName, sbProblem);
 							}
@@ -454,12 +474,12 @@ public class H_ResultsPerspective {
 
 					/* PLANNER OUTPUTS PROCESSING */
 
-					Pattern decimalNumberRegex = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
+					
 					int traceIndex = 1;
-					for(final File alignmentFile : plansFoundFolder.listFiles()) {
+					for(final File alignmentFile : plansFoundDir.listFiles()) {
 
 						// extract traceId
-						Matcher traceIdMatcher = decimalNumberRegex.matcher(alignmentFile.getName());
+						Matcher traceIdMatcher = decimalNumberRegexPattern.matcher(alignmentFile.getName());
 						traceIdMatcher.find();
 						int traceId = Integer.parseInt(traceIdMatcher.group());
 
@@ -483,22 +503,22 @@ public class H_ResultsPerspective {
 							while (outputLine != null) {
 
 								// parse alignment cost
-								if(outputLine.startsWith("; cost = ")) {
+								if(outputLine.startsWith(COST_ENTRY_PREFIX)) {
 
-									Matcher m = decimalNumberRegex.matcher(outputLine);
-									m.find();
-									traceAlignmentCost = m.group();
+									Matcher matcher = decimalNumberRegexPattern.matcher(outputLine);
+									matcher.find();
+									traceAlignmentCost = matcher.group();
 
 									if(Integer.parseInt(traceAlignmentCost) > 0)
 										alignedTracesAmount++;
 								}
 
 								// parse alignment time
-								if(outputLine.startsWith("; searchtime = ")) {
+								if(outputLine.startsWith(SEARCH_TIME_ENTRY_PREFIX)) {
 
-									Matcher m = decimalNumberRegex.matcher(outputLine);
-									m.find();
-									traceAlignmentTime = m.group();
+									Matcher matcher = decimalNumberRegexPattern.matcher(outputLine);
+									matcher.find();
+									traceAlignmentTime = matcher.group();
 								}
 
 								outputLine = processOutputReader.readLine();
