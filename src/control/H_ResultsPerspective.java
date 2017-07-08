@@ -48,6 +48,7 @@ public class H_ResultsPerspective {
 	public ResultsPerspective _view = null;
 
 	private Thread plannerThread;
+	private Process plannerManagerProcess;
 	private Hashtable<String, String> duplicatedTracesHashtable = new Hashtable<String, String>();
 	private Vector<String> tracesWithFailureVector = new Vector<String>();
 
@@ -80,14 +81,16 @@ public class H_ResultsPerspective {
 			public void windowDeiconified(WindowEvent e) {}
 
 			public void windowClosing(WindowEvent e) {
-				plannerThread.interrupt();    
+				plannerThread.interrupt();
+				plannerManagerProcess.destroy();
 				_view.dispose();
 			}
 		});
 
 		_view.getOkButton().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ae) {
-				plannerThread.interrupt();           	
+				plannerThread.interrupt();
+				plannerManagerProcess.destroy();
 				_view.dispose();
 			}
 		});
@@ -457,18 +460,18 @@ public class H_ResultsPerspective {
 
 					// execute external planner script and wait for results
 					ProcessBuilder processBuilder = new ProcessBuilder(commandArgs);
-					Process process = processBuilder.start();
+					plannerManagerProcess = processBuilder.start();
 
 					//System.out.println(Arrays.toString(commandArgs));
 
 					// read std out & err in separated thread
-					StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR");
-					StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT");
+					StreamGobbler errorGobbler = new StreamGobbler(plannerManagerProcess.getErrorStream(), "ERROR");
+					StreamGobbler outputGobbler = new StreamGobbler(plannerManagerProcess.getInputStream(), "OUTPUT");
 					errorGobbler.start();
 					outputGobbler.start();
 
 					// wait for the process to return to read the generated outputs
-					process.waitFor();
+					plannerManagerProcess.waitFor();
 					
 
 
@@ -636,6 +639,14 @@ public class H_ResultsPerspective {
 
 	public void setTotalAlignmentCost(float totalAlignmentCost) {
 		this.totalAlignmentCost = totalAlignmentCost;
+	}
+
+	public Process getPlannerManagerProcess() {
+		return plannerManagerProcess;
+	}
+
+	public void setPlannerManagerProcess(Process plannerManagerProcess) {
+		this.plannerManagerProcess = plannerManagerProcess;
 	}
 
 }
