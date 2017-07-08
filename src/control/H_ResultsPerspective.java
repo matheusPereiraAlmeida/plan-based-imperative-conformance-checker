@@ -27,6 +27,8 @@ import org.apache.commons.lang3.SystemUtils;
 import main.Constants;
 import main.Trace;
 import main.Utilities;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 import utils.StreamGobbler;
 import view.PlannerPerspective;
 import view.ResultsPerspective;
@@ -81,20 +83,15 @@ public class H_ResultsPerspective {
 			public void windowDeiconified(WindowEvent e) {}
 
 			public void windowClosing(WindowEvent e) {
-				plannerThread.interrupt();
-				plannerManagerProcess.destroy();
-				_view.dispose();
+				killSubprocesses();
 			}
 		});
 
 		_view.getOkButton().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ae) {
-				plannerThread.interrupt();
-				plannerManagerProcess.destroy();
-				_view.dispose();
+				killSubprocesses();
 			}
 		});
-
 
 		_view.getAlignedTracesCombobox().addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent event) {
@@ -298,6 +295,17 @@ public class H_ResultsPerspective {
 			}
 		});
 	}
+	
+	
+	/**
+	 * Shut down all active computations.
+	 * 
+	 */
+	private void killSubprocesses() {
+		plannerThread.interrupt();
+		plannerManagerProcess.destroy();
+		_view.dispose();
+	}
 
 
 	/**
@@ -308,7 +316,7 @@ public class H_ResultsPerspective {
 	 * @return an array of Strings containing the arguments.
 	 * @throws IOException 
 	 */
-	public String[] buildFastDownardCommandArgs() throws IOException {
+	private String[] buildFastDownardCommandArgs() throws IOException {
 		ArrayList<String> commandComponents = new ArrayList<>();
 
 		// determine which python interpreter must be used
@@ -371,7 +379,7 @@ public class H_ResultsPerspective {
 	 * Initialize the thread for planner execution.
 	 * 
 	 */
-	public void initPlannerThread() {
+	private void initPlannerThread() {
 		plannerThread = new Thread(new Runnable() {
 
 			public void run() {
