@@ -27,8 +27,6 @@ import org.apache.commons.lang3.SystemUtils;
 import main.Constants;
 import main.Trace;
 import main.Utilities;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 import utils.StreamGobbler;
 import view.PlannerPerspective;
 import view.ResultsPerspective;
@@ -327,6 +325,8 @@ public class H_ResultsPerspective {
 			} else {
 				pythonInterpreter = "python27/" + pythonInterpreter;
 			}
+		} else {
+			pythonInterpreter = "python27/linux-mac/" + pythonInterpreter;
 		}
 		
 		/* begin of command args for planner manager */
