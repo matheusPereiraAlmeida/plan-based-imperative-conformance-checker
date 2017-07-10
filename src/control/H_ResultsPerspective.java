@@ -44,7 +44,7 @@ public class H_ResultsPerspective {
 	public static final String SEARCH_TIME_ENTRY_PREFIX = "; searchtime = ";
 	public static final String TRACE_NAME_PREFIX = "Trace#";
 	public static final String COMMAND_ARG_PLACEHOLDER = "+";
-	
+
 	public ResultsPerspective _view = null;
 
 	private Thread plannerThread;
@@ -59,7 +59,7 @@ public class H_ResultsPerspective {
 	private int alignedTracesAmount = 0;
 	private float totalAlignmentCost = 0;
 	private float totalAlignmentTime = 0;
-	
+
 	private Pattern decimalNumberRegexPattern = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
 
 	public H_ResultsPerspective (ResultsPerspective i_view){
@@ -293,8 +293,8 @@ public class H_ResultsPerspective {
 			}
 		});
 	}
-	
-	
+
+
 	/**
 	 * Shut down all active computations.
 	 * 
@@ -325,10 +325,11 @@ public class H_ResultsPerspective {
 			} else {
 				pythonInterpreter = "python27/" + pythonInterpreter;
 			}
-		} else {
-			pythonInterpreter = "python27/linux-mac/" + pythonInterpreter;
-		}
-		
+		} 
+//		else {
+//			pythonInterpreter = "python27/linux-mac/" + pythonInterpreter;
+//		}
+
 		/* begin of command args for planner manager */
 
 		commandComponents.add(pythonInterpreter);
@@ -459,11 +460,11 @@ public class H_ResultsPerspective {
 					}
 
 
-					
+
 					/* PLANNER INVOCATION */
 
 					_view.appendToResults("\n>> ALIGNMENT IN PROGRESS.......\n\n", Color.BLACK);					
-					
+
 					String[] commandArgs = buildFastDownardCommandArgs();
 
 					// execute external planner script and wait for results
@@ -480,12 +481,11 @@ public class H_ResultsPerspective {
 
 					// wait for the process to return to read the generated outputs
 					plannerManagerProcess.waitFor();
-					
+
 
 
 					/* PLANNER OUTPUTS PROCESSING */
 
-					
 					int traceIndex = 1;
 					for(final File alignmentFile : plansFoundDir.listFiles()) {
 
