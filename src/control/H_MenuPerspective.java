@@ -309,7 +309,14 @@ public class H_MenuPerspective {
 
 					if(!Constants.getPetriNetPerspective().getPetriNetArea().getText().isEmpty()) {
 						String[] options = new String[] {"Yes", "No"};
-						response = JOptionPane.showOptionDialog(null, "Lose the previously defined Petri Net?", "Import a Petri Net from a PNML file",JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, new ImageIcon("images/question_icon.png"), options, options[0]);
+						response = JOptionPane.showOptionDialog(null,
+								"Lose the previously defined Petri Net?",
+								"Import a Petri Net from a PNML file",
+								JOptionPane.DEFAULT_OPTION, 
+								JOptionPane.QUESTION_MESSAGE,
+								new ImageIcon("images/question_icon.png"),
+								options,
+								options[0]);
 					}
 
 					if(response==0) {
@@ -333,7 +340,7 @@ public class H_MenuPerspective {
 							Pnml pnml = ut.importPnmlFromStream(input, f.getName(), f.length());
 							PetrinetGraph net = PetrinetFactory.newInhibitorNet(pnml.getLabel() + " (imported from " + f.getName() + ")");
 							Marking marking = new Marking();
-							pnml.convertToNet(net,marking ,new GraphLayoutConnection(net));
+							pnml.convertToNet(net, marking, new GraphLayoutConnection(net));
 
 							Collection<Place> places = net.getPlaces();
 							Collection<Transition> transitions = net.getTransitions();
