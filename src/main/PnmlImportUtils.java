@@ -7,7 +7,7 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 public class PnmlImportUtils {
-	public Pnml importPnmlFromStream(InputStream input, String filename, long fileSizeInBytes)
+	public Pnml importPnmlFromStream(InputStream input)
 			throws Exception {
 		/*
 		 * Get an XML pull parser.

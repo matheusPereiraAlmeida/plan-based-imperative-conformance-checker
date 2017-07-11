@@ -24,8 +24,8 @@ import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
 import org.processmining.models.connections.GraphLayoutConnection;
+import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
-import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
@@ -42,8 +42,7 @@ import view.MenuPerspective;
 
 public class H_MenuPerspective {
 
-	private String generated_invisible_transition = "generatedINV";
-	private int number_of_generated_transitions = 0;
+	private static final String INVISIBLE_TRANSITION_PREFIX = "generatedINV";
 
 	public MenuPerspective _view = null;
 
@@ -152,24 +151,24 @@ public class H_MenuPerspective {
 
 						XLog log = XLogReader.openLog(selectedFile.getAbsolutePath());
 
-						int trace_int_id = 0;
+						int traceId = 0;
 
 						// Vector used to record the complete alphabet of activities used in the log
-						Vector<String> loaded_alphabet_vector = new Vector<String>();
+						Vector<String> logAlphabetVector = new Vector<String>();
 
 						// Vector used to record the activities of a specific trace of the log
-						Vector<String> loaded_trace_activities_vector = new Vector<String>();
+						Vector<String> traceActivitiesVector = new Vector<String>();
 
 						//int sumOfTracesLength=0;
 
 						for(XTrace trace:log){
 
-							trace_int_id++;
+							traceId++;
 
 							//String traceName = XConceptExtension.instance().extractName(trace);
 							//System.out.println("Trace Name : " + traceName);
 
-							Trace t = new Trace("Trace#" + trace_int_id);
+							Trace t = new Trace("Trace#" + traceId);
 
 							t.setTraceAlphabet(new Vector<String>());
 
@@ -178,85 +177,33 @@ public class H_MenuPerspective {
 							//////////////////////////////////////////////
 
 							//XAttributeMap caseAttributes = trace.getAttributes();
-							loaded_trace_activities_vector = new Vector<String>();
+							traceActivitiesVector = new Vector<String>();
 
 							//int traceLength=0;
 
 							for(XEvent event : trace){
 								String activityName = XConceptExtension.instance().extractName(event).toLowerCase();
+								activityName = getCorrectFormatting(activityName);
 
-								if(activityName.contains(" "))
-									activityName = activityName.replaceAll(" ", "");
+								traceActivitiesVector.addElement(activityName);
 
-								if(activityName.contains("/"))
-									activityName = activityName.replaceAll("\\/", "");
-
-								if(activityName.contains("("))
-									activityName = activityName.replaceAll("\\(", "");
-
-								if(activityName.contains(")"))
-									activityName = activityName.replaceAll("\\)", "");
-
-								if(activityName.contains("<"))
-									activityName = activityName.replaceAll("\\<", "");
-
-								if(activityName.contains(">"))
-									activityName = activityName.replaceAll("\\>", "");
-
-								if(activityName.contains("."))
-									activityName = activityName.replaceAll("\\.", "");
-
-								if(activityName.contains(","))
-									activityName = activityName.replaceAll("\\,", "_");
-
-								if(activityName.contains("+"))
-									activityName = activityName.replaceAll("\\+", "_");
-
-								if(activityName.contains("-"))
-									activityName = activityName.replaceAll("\\-", "_");
-
-								//System.out.println("Activity Name : " + activityName);
-
-								//Add to the activity name the type of event that it covers in the life cycle
-								//String eventType = XLifecycleExtension.instance().extractTransition(event).toLowerCase();
-
-								//traceLength++;
-
-								loaded_trace_activities_vector.addElement(activityName);
-
-								if(!t.getTraceAlphabet().contains(activityName)) {
+								if(!t.getTraceAlphabet().contains(activityName))
 									t.getTraceAlphabet().addElement(activityName);
-								}
 
-								if(!loaded_alphabet_vector.contains(activityName))
-									loaded_alphabet_vector.addElement(activityName);
-
-								/*
-								Date timestamp = XTimeExtension.instance().extractTimestamp(event);
-								System.out.println("TimeStamp : " + timestamp);
-
-								String eventType = XLifecycleExtension.instance().extractTransition(event);
-								XAttributeMap eventAttributes = event.getAttributes();
-								for(String key :eventAttributes.keySet()){
-									String value = eventAttributes.get(key).toString();
-									System.out.println("Value : " + value);
-								}
-								for(String key :caseAttributes.keySet()){
-									String value = caseAttributes.get(key).toString();
-									System.out.println("Value : " + value);
-								}
-								 */
+								// add activity name to log alphabet (if not already present)
+								if(!logAlphabetVector.contains(activityName))
+									logAlphabetVector.addElement(activityName);
 
 							}
 
 							// Update the single trace of the log						
 
-							for(int j=0;j<loaded_trace_activities_vector.size();j++) {
-								String string = (String) loaded_trace_activities_vector.elementAt(j);
+							for(int j=0;j<traceActivitiesVector.size();j++) {
+								String string = (String) traceActivitiesVector.elementAt(j);
 								t.getTraceContentVector().addElement(string);
 
 								t.getTraceTextualContent().append(string);
-								if(j<loaded_trace_activities_vector.size()-1)
+								if(j<traceActivitiesVector.size()-1)
 									t.getTraceTextualContent().append(",");
 							}
 
@@ -266,10 +213,10 @@ public class H_MenuPerspective {
 						}
 
 						//Update the GUI component with the loaded LOG
-						Constants.setLogActivitiesRepositoryVector(loaded_alphabet_vector);
-						for(int kix=0;kix<loaded_alphabet_vector.size();kix++){
-							Constants.getAlphabetPerspective().getAlphabetListModel().addElement(loaded_alphabet_vector.elementAt(kix));
-							Constants.getTracePerspective().getAlphabetListModel().addElement(loaded_alphabet_vector.elementAt(kix));
+						Constants.setLogActivitiesRepositoryVector(logAlphabetVector);
+						for(int kix=0; kix < logAlphabetVector.size(); kix++){
+							Constants.getAlphabetPerspective().getAlphabetListModel().addElement(logAlphabetVector.elementAt(kix));
+							Constants.getTracePerspective().getAlphabetListModel().addElement(logAlphabetVector.elementAt(kix));
 						}
 
 						Constants.getTracePerspective().getTracesComboBox().setSelectedIndex(1);
@@ -307,6 +254,7 @@ public class H_MenuPerspective {
 
 					int response = 0;
 
+					// ask user to confirm import if text area is non-empty
 					if(!Constants.getPetriNetPerspective().getPetriNetArea().getText().isEmpty()) {
 						String[] options = new String[] {"Yes", "No"};
 						response = JOptionPane.showOptionDialog(null,
@@ -333,14 +281,15 @@ public class H_MenuPerspective {
 
 						try {
 
-
-							PnmlImportUtils ut = new PnmlImportUtils();									  	
-
+							// create Pnml object from .pnml file
+							PnmlImportUtils ut = new PnmlImportUtils();
 							InputStream input = new FileInputStream(f);
-							Pnml pnml = ut.importPnmlFromStream(input, f.getName(), f.length());
-							PetrinetGraph net = PetrinetFactory.newInhibitorNet(pnml.getLabel() + " (imported from " + f.getName() + ")");
-							Marking marking = new Marking();
-							pnml.convertToNet(net, marking, new GraphLayoutConnection(net));
+							Pnml pnml = ut.importPnmlFromStream(input);
+
+							// create Petri Net from Pnml object
+							Petrinet net = PetrinetFactory.newPetrinet(pnml.getLabel() + " (imported from " + f.getName() + ")");
+							Marking marking = new Marking();								  // only needed for Petrinet initialization
+							pnml.convertToNet(net, marking, new GraphLayoutConnection(net));  // initialize Petrinet
 
 							Collection<Place> places = net.getPlaces();
 							Collection<Transition> transitions = net.getTransitions();
@@ -373,34 +322,27 @@ public class H_MenuPerspective {
 							//System.out.println(places);
 							//System.out.println(transitions);
 
-							Iterator<Place> places_iterator = places.iterator();
-							Iterator<Transition> transitions_iterator = transitions.iterator();
-
 							Constants.setAllTransitionsVector(new Vector<PetriNetTransition>());
 							Constants.setAllPlacesVector(new Vector<String>());
-
 							Constants.setPlacesInInitialMarkingVector(new Vector<String>());
 							Constants.setPlacesInFinalMarkingVector(new Vector<String>());
 
-							//Feed the vector of places with the places imported from the Petri Net
-							while(places_iterator.hasNext()) {
-								Place aPlace = places_iterator.next();
-
-								String placeName = aPlace.getLabel();
-
+							//Feed the vector of places with the places imported from the Petri Net.
+							//Determine which places compose the initial and final markings.
+							for (Place place : places) {
+								String placeName = place.getLabel();
 								placeName = getCorrectFormatting(placeName);
 
 								Constants.getAllPlacesVector().addElement(placeName.toLowerCase());
 
-								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> edgesOutPlaceCollection = net.getOutEdges(aPlace);								
-								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> edgesInPlaceCollection = net.getInEdges(aPlace);
+								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> placeOutEdgesCollection = net.getOutEdges(place);								
+								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> placeInEdgesCollection = net.getInEdges(place);
 
-								if(edgesInPlaceCollection.isEmpty())
+								if(placeInEdgesCollection.isEmpty())
 									Constants.getPlacesInInitialMarkingVector().addElement(placeName);
 
-								if(edgesOutPlaceCollection.isEmpty())
+								if(placeOutEdgesCollection.isEmpty())
 									Constants.getPlacesInFinalMarkingVector().addElement(placeName);
-
 							}
 
 							StyleConstants.setForeground(style, Color.BLACK);
@@ -412,10 +354,9 @@ public class H_MenuPerspective {
 							StyleConstants.setForeground(style, Color.BLUE);
 							Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(), Constants.getPlacesInFinalMarkingVector() + "\n\n", style);
 
-							while(transitions_iterator.hasNext()) {
-
-								Transition aTransition = transitions_iterator.next();
-
+							
+							int generatedTransitionsNum = 0;
+							for (Transition transition : transitions) {
 								//System.out.println(aTransition.getLabel());
 
 								StyleConstants.setBold(style, true);
@@ -424,57 +365,57 @@ public class H_MenuPerspective {
 								StyleConstants.setBold(style, false);
 								StyleConstants.setForeground(style, Color.BLUE);
 
-								if(aTransition.getLabel().isEmpty()) {
+								if(transition.getLabel().isEmpty()) {
 									StyleConstants.setItalic(style, true);
 									Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),"empty label\n", style);
 									StyleConstants.setItalic(style, false);
 								}
 								else
-									Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),aTransition.getLabel() + "\n", style);
+									Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),transition.getLabel() + "\n", style);
 
 
 								//To get OUTGOING edges from a transition
-								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> edgesOutTcollection = net.getOutEdges(aTransition);
+								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> transitionOutEdgesCollection = net.getOutEdges(transition);
 
 								//To get INGOING edges to a transition
-								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> edgesInTcollection = net.getInEdges(aTransition);
-
-								Vector<Place> inputPlacesVector = new Vector<Place>();
-								Vector<Place> outputPlacesVector = new Vector<Place>();
-
-								Iterator<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> edgesInTcollectionIterator = edgesInTcollection.iterator();
-								Iterator<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> edgesOutTcollectionIterator = edgesOutTcollection.iterator();
-
-								//System.out.println("Input Places of transition " + aTransition.getLabel());
+								Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> transitionInEdgesCollection = net.getInEdges(transition);
 
 
+								Vector<Place> transitionOutPlacesVector = new Vector<Place>();
+								Vector<Place> transitionInPlacesVector = new Vector<Place>();
+								Iterator<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> transitionInEdgesIterator = transitionInEdgesCollection.iterator();
+								Iterator<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> transitionOutEdgesIterator = transitionOutEdgesCollection.iterator();
+
+
+								//get the collection of input places
 								StyleConstants.setForeground(style, Color.BLACK);
 								Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(), "- List of input places: <", style);
 
-								while(edgesInTcollectionIterator.hasNext()) {
-									PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge = edgesInTcollectionIterator.next();									
-									inputPlacesVector.addElement((Place) edge.getSource());
+								while(transitionInEdgesIterator.hasNext()) {
+									PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge = transitionInEdgesIterator.next();									
+									transitionInPlacesVector.addElement((Place) edge.getSource());
 
 									Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),edge.getSource().getLabel(), style);
 
-									if(edgesInTcollectionIterator.hasNext()) {
+									if(transitionInEdgesIterator.hasNext()) {
 										Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),",", style);
 										//System.out.println(edge.getSource().getLabel());								
 									}
 								}
 								Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),">\n", style);
 
-								//System.out.println("Output Places of transition " + aTransition.getLabel());
 
+
+								//get the collection of output places
 								Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(), "- List of output places: <", style);
 
-								while(edgesOutTcollectionIterator.hasNext()) {
-									PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge = edgesOutTcollectionIterator.next();
-									outputPlacesVector.addElement((Place) edge.getTarget());
+								while(transitionOutEdgesIterator.hasNext()) {
+									PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge = transitionOutEdgesIterator.next();
+									transitionOutPlacesVector.addElement((Place) edge.getTarget());
 
 									Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),edge.getTarget().getLabel(), style);
 
-									if(edgesOutTcollectionIterator.hasNext())
+									if(transitionOutEdgesIterator.hasNext())
 										Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),",", style);
 
 
@@ -483,45 +424,17 @@ public class H_MenuPerspective {
 								Constants.getPetriNetPerspective().getDocument().insertString(Constants.getPetriNetPerspective().getDocument().getLength(),">\n\n", style);
 
 
-								String activityName = aTransition.getLabel();
+								String activityName = transition.getLabel();
 
 								if(activityName.isEmpty() || activityName.equalsIgnoreCase("") || activityName.equalsIgnoreCase(" ") || activityName.equalsIgnoreCase("\"")) {
-									activityName = new String(generated_invisible_transition+number_of_generated_transitions);
-									number_of_generated_transitions++;
+									activityName = new String(INVISIBLE_TRANSITION_PREFIX + generatedTransitionsNum);
+									generatedTransitionsNum++;
 								}
 
-								if(activityName.contains(" "))
-									activityName = activityName.replaceAll(" ", "");
+								activityName = getCorrectFormatting(activityName);
 
-								if(activityName.contains("/"))
-									activityName = activityName.replaceAll("\\/", "");
-
-								if(activityName.contains("("))
-									activityName = activityName.replaceAll("\\(", "");
-
-								if(activityName.contains(")"))
-									activityName = activityName.replaceAll("\\)", "");
-
-								if(activityName.contains("<"))
-									activityName = activityName.replaceAll("\\<", "");
-
-								if(activityName.contains(">"))
-									activityName = activityName.replaceAll("\\>", "");
-
-								if(activityName.contains("."))
-									activityName = activityName.replaceAll("\\.", "");
-
-								if(activityName.contains(","))
-									activityName = activityName.replaceAll("\\,", "_");
-
-								if(activityName.contains("+"))
-									activityName = activityName.replaceAll("\\+", "_");
-
-								if(activityName.contains("-"))
-									activityName = activityName.replaceAll("\\-", "_");
-
-								PetriNetTransition trans = new PetriNetTransition(activityName.toLowerCase(), inputPlacesVector, outputPlacesVector);
-								Constants.getAllTransitionsVector().addElement(trans);
+								PetriNetTransition petriNetTransition = new PetriNetTransition(activityName.toLowerCase(), transitionInPlacesVector, transitionOutPlacesVector);
+								Constants.getAllTransitionsVector().addElement(petriNetTransition);
 							}
 
 							Constants.getPetriNetPerspective().getPetriNetArea().setCaretPosition(0);
