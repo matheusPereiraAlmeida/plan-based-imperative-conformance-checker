@@ -90,6 +90,6 @@ local.properties
 
 ##################
 
-fast-downward/*
+fast-downward*
 output.sas
 python27*
