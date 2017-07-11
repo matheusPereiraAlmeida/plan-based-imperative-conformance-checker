@@ -92,4 +92,4 @@ local.properties
 
 fast-downward/*
 output.sas
-python27/linux-mac/*
+python27*

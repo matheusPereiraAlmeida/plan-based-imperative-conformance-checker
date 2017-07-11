@@ -22,8 +22,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
-import org.apache.commons.lang3.SystemUtils;
-
 import main.Constants;
 import main.Trace;
 import main.Utilities;
@@ -33,6 +31,9 @@ import view.ResultsPerspective;
 
 public class H_ResultsPerspective {
 
+	public static final String WINDOWS = "windows";
+	public static final String PYTHON_WIN_DIR = "python27/";
+	public static final String PYTHON_WIN_AMD64_DIR = "python27amd64/";
 	public static final String FAST_DOWNWARD_DIR = "fast-downward/";
 	public static final String PLANS_FOUND_DIR = FAST_DOWNWARD_DIR + "plans_found/";
 	public static final String PDDL_FILES_DIR = FAST_DOWNWARD_DIR + "Conformance_Checking/";
@@ -44,6 +45,8 @@ public class H_ResultsPerspective {
 	public static final String SEARCH_TIME_ENTRY_PREFIX = "; searchtime = ";
 	public static final String TRACE_NAME_PREFIX = "Trace#";
 	public static final String COMMAND_ARG_PLACEHOLDER = "+";
+	public static final String PLANNER_MANAGER_SCRIPT = "planner_manager.py";
+	public static final String FAST_DOWNWARD_SCRIPT = "fast-downward.py";
 
 	public ResultsPerspective _view = null;
 
@@ -319,22 +322,21 @@ public class H_ResultsPerspective {
 
 		// determine which python interpreter must be used
 		String pythonInterpreter = "python";
-		if (SystemUtils.IS_OS_WINDOWS) {
+		
+		String osName = System.getProperty("os.name").toLowerCase();
+		if (osName.contains(WINDOWS)) {
 			if (Utilities.is64bitsOS()) {
-				pythonInterpreter = "python27amd64/" + pythonInterpreter;
+				pythonInterpreter = PYTHON_WIN_AMD64_DIR + pythonInterpreter;
 			} else {
-				pythonInterpreter = "python27/" + pythonInterpreter;
+				pythonInterpreter = PYTHON_WIN_DIR + pythonInterpreter;
 			}
-		} 
-//		else {
-//			pythonInterpreter = "python27/linux-mac/" + pythonInterpreter;
-//		}
+		}
 
 		/* begin of command args for planner manager */
 
 		commandComponents.add(pythonInterpreter);
 
-		File plannerManagerScript = new File("planner_manager.py");
+		File plannerManagerScript = new File(PLANNER_MANAGER_SCRIPT);
 		commandComponents.add(plannerManagerScript.getCanonicalPath());
 
 
@@ -342,7 +344,7 @@ public class H_ResultsPerspective {
 
 		commandComponents.add(pythonInterpreter);
 
-		File fdScript = new File("fast-downward/fast-downward.py");
+		File fdScript = new File(FAST_DOWNWARD_DIR + FAST_DOWNWARD_SCRIPT);
 		commandComponents.add(fdScript.getCanonicalPath());
 
 		// Fast-Downward is assumed to be built in advance both for 32 and 64 bits OS (being them Windows or Unix-like).
