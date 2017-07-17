@@ -12,7 +12,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
 import main.Constants;
-import main.PetriNetTransition;
+import main.PetrinetTransition;
 import main.Trace;
 import view.PetriNetsPerspective;
 import view.PlannerPerspective;
@@ -76,7 +76,7 @@ public class H_PetriNetsPerspective {
 				//   -- If a transition is KNOWN to be invisible, its costs are set to 0
 				//   -- Update the vector containing all activities	
 				for(int i=0;i<Constants.getAllTransitionsVector().size();i++) {
-					PetriNetTransition ith_trans = Constants.getAllTransitionsVector().elementAt(i);
+					PetrinetTransition ith_trans = Constants.getAllTransitionsVector().elementAt(i);
 
 					if(!Constants.getLogActivitiesRepositoryVector().contains(ith_trans.getName())) {
 

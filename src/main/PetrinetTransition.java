@@ -3,7 +3,7 @@ package main;
 import java.util.Vector;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 
-public class PetriNetTransition {
+public class PetrinetTransition {
 
 	//Original label of the transition
 	private String name;
@@ -19,7 +19,7 @@ public class PetriNetTransition {
 	// occurrences of the transition in the Petri Net)
 	private String alias = new String();
 
-	public PetriNetTransition(String transName, Vector<Place> vector_of_input_places, Vector<Place> vector_of_output_places) {		
+	public PetrinetTransition(String transName, Vector<Place> vector_of_input_places, Vector<Place> vector_of_output_places) {		
 		name = transName;
 		inputPlacesVector = vector_of_input_places;
 		outputPlacesVector = vector_of_output_places;

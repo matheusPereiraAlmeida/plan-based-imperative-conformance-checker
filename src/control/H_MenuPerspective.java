@@ -33,7 +33,7 @@ import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactor
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.pnml.Pnml;
 import main.Constants;
-import main.PetriNetTransition;
+import main.PetrinetTransition;
 import main.PnmlImportUtils;
 import main.Trace;
 import main.XLogReader;
@@ -82,7 +82,7 @@ public class H_MenuPerspective {
 
 					Constants.getPetriNetPerspective().resetComponent();
 					Constants.setAllPlacesVector(new Vector<String>());
-					Constants.setAllTransitionsVector(new Vector<PetriNetTransition>());
+					Constants.setAllTransitionsVector(new Vector<PetrinetTransition>());
 					Constants.setPlacesInInitialMarkingVector(new Vector<String>());
 					Constants.setPlacesInFinalMarkingVector(new Vector<String>());
 
@@ -136,13 +136,7 @@ public class H_MenuPerspective {
 						// RESET the Petri Nets perspective view
 						Constants.getPetriNetPerspective().resetComponent();
 						Constants.setAllPlacesVector(new Vector<String>());
-						Constants.setAllTransitionsVector(new Vector<PetriNetTransition>());
-
-						// RESET the costs of adding/removing tasks in/from the trace
-						// --> It is already done during the transition between PetriNetPerspective to PlannerPerspective
-						// --> NOT REQUIRED HERE
-						//Constants.setActivitiesCostVector(new Vector<Vector<String>>());
-						//Constants.setPetriNetMarkingVector(new Vector<Vector<String>>());
+						Constants.setAllTransitionsVector(new Vector<PetrinetTransition>());
 
 						Constants.getAlphabetPerspective().setComponentEnabled(false);
 						Constants.getTracePerspective().setComponentEnabled(true);
@@ -322,7 +316,7 @@ public class H_MenuPerspective {
 							//System.out.println(places);
 							//System.out.println(transitions);
 
-							Constants.setAllTransitionsVector(new Vector<PetriNetTransition>());
+							Constants.setAllTransitionsVector(new Vector<PetrinetTransition>());
 							Constants.setAllPlacesVector(new Vector<String>());
 							Constants.setPlacesInInitialMarkingVector(new Vector<String>());
 							Constants.setPlacesInFinalMarkingVector(new Vector<String>());
@@ -433,7 +427,7 @@ public class H_MenuPerspective {
 
 								activityName = getCorrectFormatting(activityName);
 
-								PetriNetTransition petriNetTransition = new PetriNetTransition(activityName.toLowerCase(), transitionInPlacesVector, transitionOutPlacesVector);
+								PetrinetTransition petriNetTransition = new PetrinetTransition(activityName.toLowerCase(), transitionInPlacesVector, transitionOutPlacesVector);
 								Constants.getAllTransitionsVector().addElement(petriNetTransition);
 							}
 
@@ -445,14 +439,14 @@ public class H_MenuPerspective {
 							//
 							for(int ixc=0;ixc<Constants.getAllTransitionsVector().size();ixc++)  {
 
-								PetriNetTransition pnt = Constants.getAllTransitionsVector().elementAt(ixc);
+								PetrinetTransition pnt = Constants.getAllTransitionsVector().elementAt(ixc);
 								int occurrences = 0;
 
 								if(!pnt.isMultiple()) {
 
 									for(int j=ixc+1;j<Constants.getAllTransitionsVector().size();j++)  {
 
-										PetriNetTransition pnt2 = Constants.getAllTransitionsVector().elementAt(j);
+										PetrinetTransition pnt2 = Constants.getAllTransitionsVector().elementAt(j);
 
 										if(pnt2.getName().equalsIgnoreCase(pnt.getName())) {
 											if(!pnt.isMultiple()) {

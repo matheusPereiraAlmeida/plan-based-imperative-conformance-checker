@@ -46,7 +46,7 @@ public class Utilities {
 
 		for(int i=0;i<Constants.getAllTransitionsVector().size();i++) {
 
-			PetriNetTransition ith_transition = Constants.getAllTransitionsVector().elementAt(i);
+			PetrinetTransition ith_transition = Constants.getAllTransitionsVector().elementAt(i);
 
 			//Move Sync
 			for(int k=0;k<trace.getTraceContentVector().size();k++) {

@@ -38,7 +38,7 @@ public class Constants {
 	/**
 	 * Vector that records all the transitions (represented as java objects "PetriNetTransition") of the log.	
 	 */
-	private static Vector<PetriNetTransition> all_transitions_vector = new Vector<PetriNetTransition>();
+	private static Vector<PetrinetTransition> all_transitions_vector = new Vector<PetrinetTransition>();
 	
 	/**
 	 * Vector that records all the places (represented as java Strings) of the log.	
@@ -150,10 +150,10 @@ public class Constants {
 	public static void setPetriNetMarkingVector(Vector<Vector<String>> petriNet_marking_vector) {
 		Constants.petriNet_marking_vector = petriNet_marking_vector;
 	}
-	public static Vector<PetriNetTransition> getAllTransitionsVector() {
+	public static Vector<PetrinetTransition> getAllTransitionsVector() {
 		return all_transitions_vector;
 	}
-	public static void setAllTransitionsVector(Vector<PetriNetTransition> all_transitions_vector) {
+	public static void setAllTransitionsVector(Vector<PetrinetTransition> all_transitions_vector) {
 		Constants.all_transitions_vector = all_transitions_vector;
 	}
 	public static Vector<String> getAllPlacesVector() {
