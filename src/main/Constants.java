@@ -79,7 +79,7 @@ public class Constants {
 	 * but never used in the Petri Net, and vice-versa.		
 	 */
 	private static Vector<String> all_activities_vector = new Vector<String>();
-
+	
 	private static int minimum_length_of_a_trace = 0;
 	private static int maximum_length_of_a_trace = 0;
 	private static boolean discard_duplicated_traces = false;

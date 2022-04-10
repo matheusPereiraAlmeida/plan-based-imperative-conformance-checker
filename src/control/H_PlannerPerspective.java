@@ -7,13 +7,18 @@ import java.awt.event.ItemListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 
 import main.Constants;
+import main.PetrinetTransition;
 import main.Trace;
 import main.Utilities;
 import view.PlannerPerspective;
@@ -63,11 +68,17 @@ public class H_PlannerPerspective {
 					_view.getAddingCostField().setEnabled(true);
 					_view.getRemovalCostField().setEnabled(true);
 					_view.getCostComboBox().setEnabled(true);
+					_view.getUseTrainingLog().setEnabled(true);
+					_view.getUseUpdatedLog().setEnabled(true);
+					_view.getResetCosts().setEnabled(true);
 				}
 				else {
 					_view.getAddingCostField().setEnabled(false);
 					_view.getRemovalCostField().setEnabled(false);
 					_view.getCostComboBox().setEnabled(false);
+					_view.getUseTrainingLog().setEnabled(false);
+					_view.getUseUpdatedLog().setEnabled(false);
+					_view.getResetCosts().setEnabled(false);
 				}
 			}
 		});
@@ -503,6 +514,131 @@ public class H_PlannerPerspective {
 				}
 			}
 
+		});
+
+		_view.getUseUpdatedLog().addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				Map<String, Double> activitiesFrequency = generateActivitiesFrequency();				
+				generateModelMoveCosts(activitiesFrequency);
+				generateLogMoveCosts(activitiesFrequency);
+
+				JOptionPane.showMessageDialog(null, "The costs have been generated correctly!", "Success!", JOptionPane.INFORMATION_MESSAGE, new ImageIcon("images/success_icon.gif"));   
+
+			}
+			private Map<String, Double> generateActivitiesFrequency() {
+				Vector<String> atividadesLog = Constants.getLogActivitiesRepositoryVector();
+				Map<String, Double> dictionaryLogMoves = new HashMap<String, Double>();
+
+				for(String atividade : atividadesLog)
+					dictionaryLogMoves.put(atividade, 1.0);
+				dictionaryLogMoves.put("sum", 5.0);
+
+				Vector<Trace> traces = Constants.getAllTracesVector();
+
+				for(Trace trace : traces){
+					Vector<String> traceContent = trace.getTraceContentVector();
+					Vector<String> traceAlphabet = trace.getTraceAlphabet();
+
+					for(String activity : traceAlphabet) {
+						int occurrences = Collections.frequency(traceContent, activity);
+						double oldOccurrencesActivity = dictionaryLogMoves.get(activity);
+						double oldOccurrencesSum = dictionaryLogMoves.get("sum");
+
+						dictionaryLogMoves.replace(activity, occurrences + oldOccurrencesActivity);
+						dictionaryLogMoves.replace("sum", occurrences + oldOccurrencesSum);
+					}
+				}
+				return dictionaryLogMoves;
+			}
+
+			private void generateModelMoveCosts(Map<String, Double> activitiesFrequency) {
+				Vector<PetrinetTransition> c = Constants.getAllTransitionsVector();				
+				Vector<String> allPlaces = Constants.getAllPlacesVector();
+				Map<String, Vector<String>> dictionaryModelMoves = new HashMap<String, Vector<String>>();
+
+				//cria um dictinary com <place, <atividades>>	
+				for(String place : allPlaces) {
+					Vector<String> coco = new Vector<String>();
+					for(PetrinetTransition transition : c) {
+						Vector<Place> inputPlaces = transition.getInputPlacesVector();
+						for(Place inputPlace : inputPlaces) {
+							String labelInputPlace = inputPlace.getLabel();
+							if(labelInputPlace.equals(place)){
+								coco.add(transition.getName());								
+							}
+						}
+					}
+					dictionaryModelMoves.put(place, coco);
+				}
+
+				//tá dando problema na frequencia do inv
+				Map<String, Double> dictionaryModelMoves2 = new HashMap<String, Double>();
+				for(String place : allPlaces) {
+					Vector<String> atividades = dictionaryModelMoves.get(place);
+					int somaTotal = 0;
+					for(String atividade : atividades) {
+						somaTotal += activitiesFrequency.getOrDefault(atividade, 0.0);						
+					}
+					for(String atividade : atividades) {
+						double custoAtividadeAtual = activitiesFrequency.getOrDefault(atividade, 0.0) / somaTotal;
+						dictionaryModelMoves2.put(atividade, custoAtividadeAtual);
+					}
+				}
+
+				//coloca os custos no vetor de custo
+
+				for(int index=0; index<Constants.getActivitiesCostVector().size(); index++) {
+					Vector<String> activityVector = Constants.getActivitiesCostVector().elementAt(index);
+
+					for(PetrinetTransition transition  : c) {
+						if(activityVector.firstElement().equals(transition.getName())) {
+							int value = (int) Math.floor(dictionaryModelMoves2.get(transition.getName()) * 100);
+							activityVector.set(1, String.valueOf(value));
+							break;
+						}
+					}
+				}
+			}
+
+			private void generateLogMoveCosts(Map<String, Double> dictionaryLogMoves) {
+				Vector<String> atividadesLog = Constants.getLogActivitiesRepositoryVector();
+
+				for(String atividade : atividadesLog) {
+					double frequency = dictionaryLogMoves.get(atividade) / dictionaryLogMoves.get("sum");
+					double realFrequency = (1 - frequency) / (atividadesLog.size());
+					dictionaryLogMoves.replace(atividade, realFrequency);
+				}
+
+				//cria os custos do log aqui
+				for(int index=0; index<Constants.getActivitiesCostVector().size(); index++) {
+					Vector<String> activityVector = Constants.getActivitiesCostVector().elementAt(index);
+
+					for(String activityLog : atividadesLog) {
+						if(activityVector.firstElement().equals(activityLog)) {
+							int value = (int) Math.floor(dictionaryLogMoves.get(activityLog) * 100);
+							activityVector.set(2, String.valueOf(value));
+							break;
+						}
+					}
+				}
+			}
+		});
+
+		_view.getResetCosts().addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				for(int index=0; index<Constants.getActivitiesCostVector().size(); index++) {
+					Vector<String> activityVector = Constants.getActivitiesCostVector().elementAt(index);
+
+					String a = activityVector.elementAt(1); 
+					if(!a.equals("0")) {
+						activityVector.set(1, "1");
+						activityVector.set(2, "1");
+					}
+				}
+								
+				JOptionPane.showMessageDialog(null, "The costs have been reseted correctly!", "Success!", JOptionPane.INFORMATION_MESSAGE, new ImageIcon("images/success_icon.gif"));   
+
+			}
 		});
 	}
 

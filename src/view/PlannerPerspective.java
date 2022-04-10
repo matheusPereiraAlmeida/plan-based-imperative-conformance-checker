@@ -18,17 +18,28 @@ import javax.swing.JTextPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.text.DefaultStyledDocument;
 
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+
 import main.Constants;
+import main.PetrinetTransition;
+import main.Trace;
 import control.H_PlannerPerspective;
+import javax.swing.SwingConstants;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Vector;
 
 public class PlannerPerspective extends JDialog {
 
 	private static final long serialVersionUID = 1L;
 
-	//private JTextArea tasksArea;
-	//private JScrollPane tasksScrollPane;	
+	// private JTextArea tasksArea;
+	// private JScrollPane tasksScrollPane;
 
-	private JTextPane petriNetArea;	
+	private JTextPane petriNetArea;
 	private DefaultStyledDocument petriNetDocument;
 	private JScrollPane petriNetScrollPane;
 
@@ -39,13 +50,13 @@ public class PlannerPerspective extends JDialog {
 	private ButtonGroup buttonGroup;
 	private JRadioButton lazyGreedyRadioButton;
 	private JLabel lazyGreedyLabel;
-	private JRadioButton optimalRadioButton;	
+	private JRadioButton optimalRadioButton;
 	private JLabel optimalLabel;
 
 	private JLabel tracesIntervalLabel;
 	private JComboBox<String> traceIdComboBoxFROM;
 	private JComboBox<String> traceIdComboBoxTO;
-	private JCheckBox tracesIntervalCheckBox;	
+	private JCheckBox tracesIntervalCheckBox;
 
 	private JLabel lenght_of_traces_label;
 	private JComboBox<String> lenght_of_traces_ComboBox_FROM;
@@ -66,7 +77,7 @@ public class PlannerPerspective extends JDialog {
 	private JTextField addingCostField;
 	private JTextField removalCostField;
 
-	//private JLabel tasksRepoLabel;
+	// private JLabel tasksRepoLabel;
 	private JLabel traceLabel;
 	private JLabel petriNetLabel;
 	private JLabel plannerOptionsLabel;
@@ -78,11 +89,15 @@ public class PlannerPerspective extends JDialog {
 	private JButton runPlannerButton;
 	private JButton createDomainAndProblemButton;
 	private JButton previousStepButton;
-
+	private JButton useUpdatedLog;
+	private JButton useTrainingLog;
+	private JButton resetCosts;
+	
 	protected H_PlannerPerspective _handler;
 
-	public PlannerPerspective()
-	{
+
+
+	public PlannerPerspective() {
 		super();
 		initComponent();
 		initHandler();
@@ -213,9 +228,6 @@ public class PlannerPerspective extends JDialog {
 		addingCostField = new JTextField("Model move");
 		addingCostField.setPreferredSize(new Dimension(90,25));
 		addingCostField.setEnabled(true);
-		removalCostField = new JTextField("Log move");
-		removalCostField.setPreferredSize(new Dimension(90,25));
-		removalCostField.setEnabled(true);
 
 		blankLabel = new JLabel();
 		blankLabel.setPreferredSize(new Dimension(150,30));
@@ -231,52 +243,64 @@ public class PlannerPerspective extends JDialog {
 
 		//this.add(tasksRepoLabel);	
 		//this.add(tasksScrollPane);	
-		this.add(traceLabel);	
-		this.add(traceScrollPane);
-		this.add(petriNetLabel);	
-		this.add(petriNetScrollPane);    
-		this.add(plannerOptionsLabel);	 
-		this.add(optimalLabel);
-		this.add(optimalRadioButton);
-		this.add(lazyGreedyLabel);
-		this.add(lazyGreedyRadioButton);	
+		getContentPane().add(traceLabel);	
+		getContentPane().add(traceScrollPane);
+		getContentPane().add(petriNetLabel);	
+		getContentPane().add(petriNetScrollPane);    
+		getContentPane().add(plannerOptionsLabel);	 
+		getContentPane().add(optimalLabel);
+		getContentPane().add(optimalRadioButton);
+		getContentPane().add(lazyGreedyLabel);
+		getContentPane().add(lazyGreedyRadioButton);	
 
 
-		this.add(initial_final_marking_label);
-		this.add(markingComboBox);
-		this.add(initialMarkingField);
-		this.add(finalMarkingField);
+		getContentPane().add(initial_final_marking_label);
+		getContentPane().add(markingComboBox);
+		getContentPane().add(initialMarkingField);
+		getContentPane().add(finalMarkingField);
 
 		//this.add(LPGlabel);
 		//this.add(LPGCheckBox);
-		this.add(blankLabel_3); 
-		this.add(tracesIntervalLabel);
-		this.add(tracesIntervalCheckBox);
-		this.add(traceIdComboBoxFROM);
-		this.add(traceIdComboBoxTO);
-		this.add(blankLabel_3); 
-		this.add(trace_duplicated_label);
-		this.add(trace_duplicated_checkBox);	    
-		this.add(blankLabel_3); 
-		this.add(lenght_of_traces_label);
-		this.add(lenght_of_traces_checkBox);
-		this.add(lenght_of_traces_ComboBox_FROM);
-		this.add(lenght_of_traces_ComboBox_TO);   
-		this.add(blankLabel_3); 
-		this.add(actionsCostLabel);	
-		this.add(costCheckBox);	
-		this.add(costComboBox);
-		this.add(addingCostField);
-		this.add(removalCostField);
-		this.add(blankLabel_3); 
-		this.add(previousStepButton); 
-		this.add(createDomainAndProblemButton); 
+		getContentPane().add(blankLabel_3); 
+		getContentPane().add(tracesIntervalLabel);
+		getContentPane().add(tracesIntervalCheckBox);
+		getContentPane().add(traceIdComboBoxFROM);
+		getContentPane().add(traceIdComboBoxTO);
+		getContentPane().add(blankLabel_3); 
+		getContentPane().add(trace_duplicated_label);
+		getContentPane().add(trace_duplicated_checkBox);	    
+		getContentPane().add(blankLabel_3); 
+		getContentPane().add(lenght_of_traces_label);
+		getContentPane().add(lenght_of_traces_checkBox);
+		getContentPane().add(lenght_of_traces_ComboBox_FROM);
+		getContentPane().add(lenght_of_traces_ComboBox_TO);   
+		getContentPane().add(blankLabel_3); 
+		getContentPane().add(actionsCostLabel);	
+		getContentPane().add(costCheckBox);	
+		getContentPane().add(costComboBox);
+		getContentPane().add(addingCostField);
+		removalCostField = new JTextField("Log move");
+		removalCostField.setPreferredSize(new Dimension(90,25));
+		removalCostField.setEnabled(true);
+		getContentPane().add(removalCostField);
+
+		useTrainingLog = new JButton("Use training event log");
+		getContentPane().add(useTrainingLog);
+		
+				useUpdatedLog = new JButton("Use updated event log ");
+				
+						getContentPane().add(useUpdatedLog);
+		
+		resetCosts = new JButton("Reset costs");
+		getContentPane().add(resetCosts);
+		getContentPane().add(blankLabel_3); 
+		getContentPane().add(previousStepButton); 
+		getContentPane().add(createDomainAndProblemButton); 
 		// this.add(blankLabel); 
-		this.add(runPlannerButton); 
+		getContentPane().add(runPlannerButton); 
 
 		this.setTitle("STEP 4: Customize the alignment");
-		this.setSize(400, 650);
-		this.setResizable(false);
+		this.setSize(420, 650);
 
 		int width = this.getWidth();
 		int height = this.getHeight();
@@ -290,13 +314,11 @@ public class PlannerPerspective extends JDialog {
 	}
 
 	/*
-	public JTextArea getTasksArea() {
-		return tasksArea;
-	}
+	 * public JTextArea getTasksArea() { return tasksArea; }
 	 */
-	
+
 	/* GETTERS & SETTERS */
-	
+
 	public JTextPane getPetriNetArea() {
 		return petriNetArea;
 	}
@@ -309,6 +331,18 @@ public class PlannerPerspective extends JDialog {
 		return runPlannerButton;
 	}
 
+	public JButton getUseTrainingLog() {
+		return useTrainingLog;
+	}
+
+	public JButton getUseUpdatedLog() {
+		return useUpdatedLog;
+	}
+
+	public JButton getResetCosts() {
+		return resetCosts;
+	}
+	
 	public JButton getPreviousStepButton() {
 		return previousStepButton;
 	}
@@ -316,7 +350,6 @@ public class PlannerPerspective extends JDialog {
 	public JRadioButton getLazyGreedyRadioButton() {
 		return lazyGreedyRadioButton;
 	}
-
 
 	public JRadioButton getOptimalRadioButton() {
 		return optimalRadioButton;
@@ -406,13 +439,11 @@ public class PlannerPerspective extends JDialog {
 		return lenght_of_traces_checkBox;
 	}
 
-	public void setLenghtOfTracesComboBoxFROM(
-			JComboBox<String> lenght_of_traces_ComboBox_FROM) {
+	public void setLenghtOfTracesComboBoxFROM(JComboBox<String> lenght_of_traces_ComboBox_FROM) {
 		this.lenght_of_traces_ComboBox_FROM = lenght_of_traces_ComboBox_FROM;
 	}
 
-	public void setLenghtOfTracesComboBoxTO(
-			JComboBox<String> lenght_of_traces_ComboBox_TO) {
+	public void setLenghtOfTracesComboBoxTO(JComboBox<String> lenght_of_traces_ComboBox_TO) {
 		this.lenght_of_traces_ComboBox_TO = lenght_of_traces_ComboBox_TO;
 	}
 
@@ -438,5 +469,5 @@ public class PlannerPerspective extends JDialog {
 
 	public DefaultStyledDocument getPetriNetDocument() {
 		return petriNetDocument;
-	}	
+	}
 }

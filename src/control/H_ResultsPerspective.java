@@ -33,7 +33,7 @@ public class H_ResultsPerspective {
 
 	public static final String WINDOWS = "windows";
 	public static final String PYTHON_WIN_DIR = "python27/";
-	public static final String PYTHON_WIN_AMD64_DIR = "python27amd64/";
+	public static final String PYTHON_WIN_AMD64_DIR = "C:/Python27/";
 	public static final String FAST_DOWNWARD_DIR = "fast-downward/";
 	public static final String PLANS_FOUND_DIR = FAST_DOWNWARD_DIR + "plans_found/";
 	public static final String PDDL_FILES_DIR = FAST_DOWNWARD_DIR + "Conformance_Checking/";
