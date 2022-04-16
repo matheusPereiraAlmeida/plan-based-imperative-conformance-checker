@@ -15,6 +15,7 @@ public class MenuPerspective extends JMenuBar{
 	private JMenuItem newMenuItem;
 	private JMenuItem openXESMenuItem;
 	private JMenuItem importPetriNetMenuItem;
+	private JMenuItem compareResults;
 	private JMenuItem exitMenuItem;
 
 	protected H_MenuPerspective _handler;
@@ -32,16 +33,19 @@ public class MenuPerspective extends JMenuBar{
 		newMenuItem = new JMenuItem("New ");	  
 		openXESMenuItem = new JMenuItem("Open XES File ");
 		importPetriNetMenuItem  = new JMenuItem("Import a Petri Net ");
+		compareResults = new JMenuItem("Compare results");
 
 		newMenuItem.setEnabled(true);
 		openXESMenuItem.setEnabled(true);
 		importPetriNetMenuItem.setEnabled(false);
-
+		compareResults.setEnabled(true);
+		
 		exitMenuItem = new JMenuItem("Exit ");
 
 		fileMenu.add(newMenuItem);
 		fileMenu.add(openXESMenuItem);
 		fileMenu.add(importPetriNetMenuItem);
+		fileMenu.add(compareResults);
 		fileMenu.addSeparator();
 		fileMenu.add(exitMenuItem);
 
@@ -86,4 +90,11 @@ public class MenuPerspective extends JMenuBar{
 		this.exitMenuItem = saveMenuItem;
 	}
 
+	public JMenuItem getCompareResults() {
+		return compareResults;
+	}
+
+	public void setCompareResults(JMenuItem saveCompareResults) {
+		this.compareResults = saveCompareResults;
+	}
 }

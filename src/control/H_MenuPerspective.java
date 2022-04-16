@@ -1,14 +1,23 @@
 package control;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -37,13 +46,13 @@ import main.PetrinetTransition;
 import main.PnmlImportUtils;
 import main.Trace;
 import main.XLogReader;
-
 import view.MenuPerspective;
 
 public class H_MenuPerspective {
 
 	private static final String INVISIBLE_TRANSITION_PREFIX = "generatedINV";
-
+	private Pattern decimalNumberRegexPattern = Pattern.compile("\\d+(,\\d{3})*(\\.\\d+)*");
+	
 	public MenuPerspective _view = null;
 
 	public H_MenuPerspective (MenuPerspective i_view){
@@ -60,6 +69,138 @@ public class H_MenuPerspective {
 				Constants.getDesktop().dispose();
 
 			}
+		});
+		
+		_view.getCompareResults().addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				File[] resultFiles = importFiles();   
+				
+				comparisonResults(resultFiles);
+
+				//System.out.print(resultFiles);
+				
+				//CompareResults compareResults = new CompareResults();
+				
+				
+			}
+
+			private void comparisonResults(File[] resultFiles) {
+				try {	
+					//FileWriter myWriter = new FileWriter("filename.txt");					
+					Map<String, Vector<String>> firstResultDictionary = extracted(resultFiles);
+					Integer diff = 0;
+
+					for(String alignmentName : firstResultDictionary.keySet()) {
+						Matcher traceIdMatcher = decimalNumberRegexPattern.matcher(alignmentName);
+						traceIdMatcher.find();
+						int traceId = Integer.parseInt(traceIdMatcher.group());
+
+						Trace trace = Constants.getAllTracesVector().elementAt(traceId - 1);
+
+						String correctTrace = trace.getTraceTextualContent().toString().replaceAll(",", "");
+						String wrongTrace = firstResultDictionary.get(alignmentName).elementAt(2);
+
+						//String correctTrace2 = correctTrace.replaceAll("activity", "");
+						//String wrongTrace2 = wrongTrace.replaceAll("activity", "");
+
+						if(!correctTrace.equals(wrongTrace)) {
+							diff++;
+						}
+					}
+					System.out.println("diif: "+diff+" equals: "+ (2000-diff));
+
+					//carrega o trace original 
+					//						//compara eles 
+					//					if(firstResultDictionary.size() != secondResultDictionary.size()) {
+					//						//alerta erro
+					//					}
+					//
+					//					myWriter.write("name;costA;costB;timeA;TimeB;CostDifferent" + System.lineSeparator());
+					//
+					//					for(String key : firstResultDictionary.keySet()) {
+					//						Vector<String> element1= firstResultDictionary.get(key);
+					//						Vector<String> element2= secondResultDictionary.get(key);
+					//
+					//						if(element1.elementAt(0).equals("0") && element2.elementAt(0).equals("0")) {
+					//							continue;
+					//						}
+					//
+					//						myWriter.write(key+";");
+					//						myWriter.write(element1.elementAt(0));
+					//						myWriter.write(element2.elementAt(0)+";");
+					//						myWriter.write(element1.elementAt(1)+";");
+					//						myWriter.write(element2.elementAt(1)+";");
+					//						Boolean isDiff = !element1.elementAt(0).equals(element2.elementAt(0));
+					//						if(!isDiff) {
+					//							diff++;
+					//						}
+					//						myWriter.write(isDiff+System.lineSeparator());
+					//					}
+					//					myWriter.write(diff);
+					//					myWriter.close();
+
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+
+			private File[] importFiles() {
+				JFileChooser chooser = new JFileChooser();
+				chooser.setMultiSelectionEnabled(true);
+
+				Component frame = null;
+
+				chooser.showOpenDialog(frame);
+				File[] resultFiles = chooser.getSelectedFiles();
+				
+				JOptionPane.showMessageDialog(null, "files imported correctly!", "Success!", JOptionPane.INFORMATION_MESSAGE, new ImageIcon("images/success_icon.gif"));
+				return resultFiles;
+			}
+			
+			private Map<String, Vector<String>> extracted(File[] files) throws FileNotFoundException {
+				Map<String, Vector<String>> infLines = new HashMap<String, Vector<String>>();
+
+				for(File file : files) {
+					var absolutePath = file.getAbsolutePath();
+					Scanner sc = new Scanner(new FileReader(absolutePath));					
+					Vector<String> inf = new Vector<String>();
+
+					String fileName = absolutePath.substring(75, absolutePath.length());
+					String originalMoves = "";						
+					String traceAligned = "";
+
+					while(sc.hasNext()) {
+						String line = sc.nextLine();
+						if(line.contains("; cost = ")) {
+							String value = line.substring(9, line.indexOf(" (general"));
+							inf.add(value);
+						}else if(line.contains("; searchtime = ")) {
+							String value = line.substring(15, line.length());
+							inf.add(value);
+						}else {
+							if(line.contains("movesync")) {
+								traceAligned = traceAligned.concat(line.substring(10,19));
+							}
+							if(line.contains("moveinthemodel") && !line.contains("generatedinv")) {
+								String value = "activity"+line.charAt(24);
+								traceAligned = traceAligned.concat(value);							
+							}
+							if(line.contains("moveinthelog")) {
+								traceAligned = traceAligned.concat(line.substring(14,23));
+							}
+							originalMoves = originalMoves.concat(line + System.lineSeparator());
+						} 
+					}
+
+					inf.add(traceAligned);
+					inf.add(originalMoves);
+					infLines.put(fileName, inf);
+				}
+				return infLines;
+			}
+		
+			
 		});
 
 		_view.getNewMenuItem().addActionListener(new ActionListener() {
@@ -174,7 +315,6 @@ public class H_MenuPerspective {
 							traceActivitiesVector = new Vector<String>();
 
 							//int traceLength=0;
-
 							for(XEvent event : trace){
 								String activityName = XConceptExtension.instance().extractName(event).toLowerCase();
 								activityName = getCorrectFormatting(activityName);

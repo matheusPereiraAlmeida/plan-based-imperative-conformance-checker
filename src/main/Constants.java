@@ -24,11 +24,20 @@ public class Constants {
 	 * Vector that records the alphabet of activities that appear in the log traces.
 	 */
 	private static Vector<String> log_activities_repository_vector = new Vector<String>();	
+	/**
+	 * Vector that records the alphabet of activities that appear in the training log traces.
+	 */
+	private static Vector<String> training_log_activities_repository_vector = new Vector<String>();
 
 	/**
 	 * Vector that records all the traces (represented as java objects "Trace") of the log.	
 	 */
 	private static Vector<Trace> all_traces_vector = new Vector<Trace>();	
+	
+	/**
+	 * Vector that records all the traces (represented as java objects "Trace") of the training log.	
+	 */
+	private static Vector<Trace> all_traces_training_vector = new Vector<Trace>();	
 
 	/**
 	 * Hashtable that records the name of a reference trace and its corresponding content.
@@ -132,11 +141,23 @@ public class Constants {
 	public static void setLogActivitiesRepositoryVector(Vector<String> v) {
 		log_activities_repository_vector = v;
 	}
+	public static Vector<String> getTrainingLogActivitiesRepositoryVector() {
+		return training_log_activities_repository_vector;
+	}
+	public static void setTrainingLogActivitiesRepositoryVector(Vector<String> v) {
+		training_log_activities_repository_vector = v;
+	}
 	public static Vector<Trace> getAllTracesVector() {
 		return all_traces_vector;
 	}
 	public static void setAllTracesVector(Vector<Trace> all_traces_vector) {
 		Constants.all_traces_vector = all_traces_vector;
+	}
+	public static Vector<Trace> getAllTrainingTracesVector() {
+		return all_traces_training_vector;
+	}
+	public static void setAllTrainingTracesVector(Vector<Trace> all_traces_vector) {
+		Constants.all_traces_vector = all_traces_training_vector;
 	}
 	public static Vector<Vector<String>> getActivitiesCostVector() {
 		return activities_cost_vector;

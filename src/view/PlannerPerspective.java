@@ -89,13 +89,10 @@ public class PlannerPerspective extends JDialog {
 	private JButton runPlannerButton;
 	private JButton createDomainAndProblemButton;
 	private JButton previousStepButton;
-	private JButton useUpdatedLog;
 	private JButton useTrainingLog;
 	private JButton resetCosts;
 	
 	protected H_PlannerPerspective _handler;
-
-
 
 	public PlannerPerspective() {
 		super();
@@ -287,10 +284,6 @@ public class PlannerPerspective extends JDialog {
 		useTrainingLog = new JButton("Use training event log");
 		getContentPane().add(useTrainingLog);
 		
-				useUpdatedLog = new JButton("Use updated event log ");
-				
-						getContentPane().add(useUpdatedLog);
-		
 		resetCosts = new JButton("Reset costs");
 		getContentPane().add(resetCosts);
 		getContentPane().add(blankLabel_3); 
@@ -333,10 +326,6 @@ public class PlannerPerspective extends JDialog {
 
 	public JButton getUseTrainingLog() {
 		return useTrainingLog;
-	}
-
-	public JButton getUseUpdatedLog() {
-		return useUpdatedLog;
 	}
 
 	public JButton getResetCosts() {

@@ -13,14 +13,21 @@ import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.deckfour.xes.extension.std.XConceptExtension;
+import org.deckfour.xes.model.XEvent;
+import org.deckfour.xes.model.XLog;
+import org.deckfour.xes.model.XTrace;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 
 import main.Constants;
 import main.PetrinetTransition;
 import main.Trace;
 import main.Utilities;
+import main.XLogReader;
 import view.PlannerPerspective;
 import view.ResultsPerspective;
 
@@ -69,7 +76,6 @@ public class H_PlannerPerspective {
 					_view.getRemovalCostField().setEnabled(true);
 					_view.getCostComboBox().setEnabled(true);
 					_view.getUseTrainingLog().setEnabled(true);
-					_view.getUseUpdatedLog().setEnabled(true);
 					_view.getResetCosts().setEnabled(true);
 				}
 				else {
@@ -77,7 +83,6 @@ public class H_PlannerPerspective {
 					_view.getRemovalCostField().setEnabled(false);
 					_view.getCostComboBox().setEnabled(false);
 					_view.getUseTrainingLog().setEnabled(false);
-					_view.getUseUpdatedLog().setEnabled(false);
 					_view.getResetCosts().setEnabled(false);
 				}
 			}
@@ -516,24 +521,139 @@ public class H_PlannerPerspective {
 
 		});
 
-		_view.getUseUpdatedLog().addActionListener(new ActionListener() {
+		_view.getUseTrainingLog().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ae) {
+				JFileChooser fileChooser = new JFileChooser();
+
+				FileNameExtensionFilter xmlfilter = new FileNameExtensionFilter("Log file (*.xes)", "xes");
+
+				fileChooser.setDialogTitle("Open log file");
+				fileChooser.setAcceptAllFileFilterUsed(false);
+				fileChooser.setFileFilter(xmlfilter);
+
+				String workingDirectoryName = System.getProperty("user.dir");
+				File workingDirectory = new File(workingDirectoryName + File.separator + "resources" + File.separator + "Log Files");
+				fileChooser.setCurrentDirectory(workingDirectory);
+
+
+				importTrainingTraces(fileChooser);
 				Map<String, Double> activitiesFrequency = generateActivitiesFrequency();				
 				generateModelMoveCosts(activitiesFrequency);
 				generateLogMoveCosts(activitiesFrequency);
 
 				JOptionPane.showMessageDialog(null, "The costs have been generated correctly!", "Success!", JOptionPane.INFORMATION_MESSAGE, new ImageIcon("images/success_icon.gif"));   
+			}
+			private void importTrainingTraces(JFileChooser fileChooser) {
+				int returnValue = fileChooser.showOpenDialog(Constants.getDesktop());
 
+				if (returnValue == JFileChooser.APPROVE_OPTION) {
+					File selectedFile = fileChooser.getSelectedFile();
+
+					try {
+
+						////////////////////////////////////////////////////////////////
+
+						XLog log = XLogReader.openLog(selectedFile.getAbsolutePath());
+
+						int traceId = 0;
+
+						// Vector used to record the complete alphabet of activities used in the log
+						Vector<String> logAlphabetVector = new Vector<String>();
+
+						// Vector used to record the activities of a specific trace of the log
+						Vector<String> traceActivitiesVector = new Vector<String>();
+
+						for(XTrace trace:log){
+
+							traceId++;
+
+							Trace t = new Trace("Trace#" + traceId);
+
+							t.setTraceAlphabet(new Vector<String>());
+
+							//////////////////////////////////////////////
+
+							traceActivitiesVector = new Vector<String>();
+
+							for(XEvent event : trace){
+								String activityName = XConceptExtension.instance().extractName(event).toLowerCase();
+								activityName = getCorrectFormatting(activityName);
+
+								traceActivitiesVector.addElement(activityName);
+
+								if(!t.getTraceAlphabet().contains(activityName))
+									t.getTraceAlphabet().addElement(activityName);
+
+								// add activity name to log alphabet (if not already present)
+								if(!logAlphabetVector.contains(activityName))
+									logAlphabetVector.addElement(activityName);
+
+							}
+
+							// Update the single trace of the log						
+
+							for(int j=0;j<traceActivitiesVector.size();j++) {
+								String string = (String) traceActivitiesVector.elementAt(j);
+								t.getTraceContentVector().addElement(string);
+
+								t.getTraceTextualContent().append(string);
+								if(j<traceActivitiesVector.size()-1)
+									t.getTraceTextualContent().append(",");
+							}
+
+							Constants.getAllTrainingTracesVector().addElement(t);
+							Constants.setTrainingLogActivitiesRepositoryVector(logAlphabetVector);
+							/////////////////////////////////////////////////////////////
+						}
+					} 
+					catch (Exception exception) {
+						exception.printStackTrace();
+					}
+				}
+			}
+			private String getCorrectFormatting(String string)  {
+
+				if(string.contains(" "))
+					string = string.replaceAll(" ", "");
+
+				if(string.contains("/"))
+					string = string.replaceAll("\\/", "");
+
+				if(string.contains("("))
+					string = string.replaceAll("\\(", "");
+
+				if(string.contains(")"))
+					string = string.replaceAll("\\)", "");
+
+				if(string.contains("<"))
+					string = string.replaceAll("\\<", "");
+
+				if(string.contains(">"))
+					string = string.replaceAll("\\>", "");
+
+				if(string.contains("."))
+					string = string.replaceAll("\\.", "");
+
+				if(string.contains(","))
+					string = string.replaceAll("\\,", "_");
+
+				if(string.contains("+"))
+					string = string.replaceAll("\\+", "_");
+
+				if(string.contains("-"))
+					string = string.replaceAll("\\-", "_");
+
+				return string;
 			}
 			private Map<String, Double> generateActivitiesFrequency() {
-				Vector<String> atividadesLog = Constants.getLogActivitiesRepositoryVector();
-				Map<String, Double> dictionaryLogMoves = new HashMap<String, Double>();
+				Vector<String> logActivities = Constants.getTrainingLogActivitiesRepositoryVector();
+				Map<String, Double> dictionaryFrequences = new HashMap<String, Double>();
 
-				for(String atividade : atividadesLog)
-					dictionaryLogMoves.put(atividade, 1.0);
-				dictionaryLogMoves.put("sum", 5.0);
+				for(String activity : logActivities)
+					dictionaryFrequences.put(activity, 1.0);
+				dictionaryFrequences.put("sum", 5.0);
 
-				Vector<Trace> traces = Constants.getAllTracesVector();
+				Vector<Trace> traces = Constants.getAllTrainingTracesVector();
 
 				for(Trace trace : traces){
 					Vector<String> traceContent = trace.getTraceContentVector();
@@ -541,82 +661,88 @@ public class H_PlannerPerspective {
 
 					for(String activity : traceAlphabet) {
 						int occurrences = Collections.frequency(traceContent, activity);
-						double oldOccurrencesActivity = dictionaryLogMoves.get(activity);
-						double oldOccurrencesSum = dictionaryLogMoves.get("sum");
+						double oldOccurrencesActivity = dictionaryFrequences.get(activity);
+						double oldOccurrencesSum = dictionaryFrequences.get("sum");
 
-						dictionaryLogMoves.replace(activity, occurrences + oldOccurrencesActivity);
-						dictionaryLogMoves.replace("sum", occurrences + oldOccurrencesSum);
+						dictionaryFrequences.replace(activity, occurrences + oldOccurrencesActivity);
+						dictionaryFrequences.replace("sum", occurrences + oldOccurrencesSum);
 					}
 				}
-				return dictionaryLogMoves;
+				return dictionaryFrequences;
 			}
-
 			private void generateModelMoveCosts(Map<String, Double> activitiesFrequency) {
 				Vector<PetrinetTransition> c = Constants.getAllTransitionsVector();				
 				Vector<String> allPlaces = Constants.getAllPlacesVector();
 				Map<String, Vector<String>> dictionaryModelMoves = new HashMap<String, Vector<String>>();
-
-				//cria um dictinary com <place, <atividades>>	
+	
 				for(String place : allPlaces) {
-					Vector<String> coco = new Vector<String>();
+					Vector<String> outputPlacesActivities = new Vector<String>();
 					for(PetrinetTransition transition : c) {
+						String transitionName = transition.getName();
+						
+						if(transitionName.contains("generatedinv"))
+							continue;
+						
 						Vector<Place> inputPlaces = transition.getInputPlacesVector();
 						for(Place inputPlace : inputPlaces) {
 							String labelInputPlace = inputPlace.getLabel();
 							if(labelInputPlace.equals(place)){
-								coco.add(transition.getName());								
+								outputPlacesActivities.add(transition.getName());								
 							}
 						}
 					}
-					dictionaryModelMoves.put(place, coco);
+					dictionaryModelMoves.put(place, outputPlacesActivities);
 				}
 
-				//tá dando problema na frequencia do inv
-				Map<String, Double> dictionaryModelMoves2 = new HashMap<String, Double>();
+				Map<String, Double> dictionaryModelCosts = new HashMap<String, Double>();
 				for(String place : allPlaces) {
-					Vector<String> atividades = dictionaryModelMoves.get(place);
-					int somaTotal = 0;
-					for(String atividade : atividades) {
-						somaTotal += activitiesFrequency.getOrDefault(atividade, 0.0);						
+					Vector<String> activities = dictionaryModelMoves.get(place);
+					int totalSum = 0;
+					for(String activity : activities) {
+						totalSum += activitiesFrequency.getOrDefault(activity, 0.0);						
 					}
-					for(String atividade : atividades) {
-						double custoAtividadeAtual = activitiesFrequency.getOrDefault(atividade, 0.0) / somaTotal;
-						dictionaryModelMoves2.put(atividade, custoAtividadeAtual);
+					for(String activity : activities) {
+						double currentCost = activitiesFrequency.getOrDefault(activity, 0.0) / totalSum;
+						dictionaryModelCosts.put(activity, currentCost);
 					}
 				}
 
 				//coloca os custos no vetor de custo
-
 				for(int index=0; index<Constants.getActivitiesCostVector().size(); index++) {
 					Vector<String> activityVector = Constants.getActivitiesCostVector().elementAt(index);
 
 					for(PetrinetTransition transition  : c) {
+						
+						if(transition.getName().contains("generatedinv"))
+							continue;
+						
 						if(activityVector.firstElement().equals(transition.getName())) {
-							int value = (int) Math.floor(dictionaryModelMoves2.get(transition.getName()) * 100);
-							activityVector.set(1, String.valueOf(value));
+							double probability = dictionaryModelCosts.get(transition.getName());
+							int modelCost = (int) Math.floor((1 + Math.log10(1/probability)) * 100);
+							activityVector.set(1, String.valueOf(modelCost));
 							break;
 						}
 					}
 				}
 			}
+			private void generateLogMoveCosts(Map<String, Double> activitiesFrequency) {
+				Vector<String> logActivities = Constants.getTrainingLogActivitiesRepositoryVector();
 
-			private void generateLogMoveCosts(Map<String, Double> dictionaryLogMoves) {
-				Vector<String> atividadesLog = Constants.getLogActivitiesRepositoryVector();
-
-				for(String atividade : atividadesLog) {
-					double frequency = dictionaryLogMoves.get(atividade) / dictionaryLogMoves.get("sum");
-					double realFrequency = (1 - frequency) / (atividadesLog.size());
-					dictionaryLogMoves.replace(atividade, realFrequency);
+				for(String activity : logActivities) {
+					double frequency = activitiesFrequency.get(activity) / activitiesFrequency.get("sum");
+					double realFrequency = (1 - frequency) / (logActivities.size());
+					activitiesFrequency.replace(activity, realFrequency);
 				}
 
 				//cria os custos do log aqui
 				for(int index=0; index<Constants.getActivitiesCostVector().size(); index++) {
 					Vector<String> activityVector = Constants.getActivitiesCostVector().elementAt(index);
 
-					for(String activityLog : atividadesLog) {
+					for(String activityLog : logActivities) {
 						if(activityVector.firstElement().equals(activityLog)) {
-							int value = (int) Math.floor(dictionaryLogMoves.get(activityLog) * 100);
-							activityVector.set(2, String.valueOf(value));
+							double probability = activitiesFrequency.get(activityLog);
+							int logCost = (int) Math.floor((1 + Math.log10(1/probability)) * 100);
+							activityVector.set(2, String.valueOf(logCost));
 							break;
 						}
 					}
@@ -635,7 +761,7 @@ public class H_PlannerPerspective {
 						activityVector.set(2, "1");
 					}
 				}
-								
+
 				JOptionPane.showMessageDialog(null, "The costs have been reseted correctly!", "Success!", JOptionPane.INFORMATION_MESSAGE, new ImageIcon("images/success_icon.gif"));   
 
 			}
